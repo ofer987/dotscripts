@@ -1,0 +1,62 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require 'json'
+require 'rest-client'
+require 'base64'
+
+TOKEN = ENV['TOKEN']
+ID = ENV['ID']
+ORGANIZATION = 'tr-commercial-eng'
+PROJECT = 'Commercial%20Engineering'
+URL = "https://dev.azure.com/#{ORGANIZATION}/#{PROJECT}/_apis/wit/workitems/#{ID}?api-version=7.0".freeze
+
+credentials = Base64.encode64(":#{TOKEN}").strip
+credentials = credentials.gsub("\n", '')
+headers = {
+  'Content-Type' => 'application/json-patch+json',
+  'Authorization' => "Basic #{credentials}"
+}
+payload = [
+  {
+    'op' => 'add',
+    'path' => '/fields/System.State',
+    'value' => 'User Acceptance Testing'
+    # 'value' => 'Sprint Complete'
+  }
+]
+# payload = [
+#   {
+#     'op': 'test',
+#     'path': '/rev',
+#     'value': 1
+#   },
+#   {
+#     'op': 'add',
+#     'path': '/fields/System.Title',
+#     'value': 'ValidationOnly won\'t patch this title or increase Rev'
+#   }
+# ]
+begin
+  # require 'pry-byebug'
+  # binding.pry
+
+  json_payload = JSON.generate(payload)
+  # puts json_payload
+  response = RestClient::Request.execute(
+    method: :patch,
+    url: URL,
+    timeout: 20,
+    headers:,
+    payload: json_payload
+  )
+
+  return unless response.code == 200
+
+  puts JSON.parse(response.body).to_json
+rescue StandardError => e
+  puts e
+  puts e.class
+
+  exit 1
+end

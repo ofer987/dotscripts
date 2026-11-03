@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+
+set -e
+
+unhide() {
+  # Arguements
+  directory=$1
+
+  cd ${directory}
+
+  directories=$(find . -type d -depth 1)
+  for item in ${directories}; do
+    unhide ${item}
+  done
+
+  files=$(find . -type f -depth 1 -iname '^\.\_*')
+  for item in ${files}; do
+    unhidden_name=$(find . -type f -depth 1 -iname '\.\_*' | sed -E 's/.*\/\.(_.*)\.(dat)$/\1.\2/')
+
+    cp ${item} ${unhidden_name}
+  done
+
+  cd ..
+}
+
+unhide $(pwd)

@@ -1,0 +1,10 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+lines = []
+until (line = $stdin.gets.to_s).empty?
+  lines << line
+end
+
+selected = ARGV[0].to_i - 1
+puts lines[selected]

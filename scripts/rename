@@ -1,0 +1,62 @@
+#!/usr/bin/env ruby
+
+require 'curses'
+
+def show_message(message)
+  height = 5
+  width  = message.length + 6
+  top    = (Curses.lines - height) / 2
+  left   = (Curses.cols - width) / 2
+  win = Curses::Window.new(height, width, top, left)
+  win.box("|", "-")
+  win.setpos(2, 3)
+  win.addstr(message)
+  win.refresh
+  # win.getch
+  win.close
+end
+
+original = ARGV[0].to_s
+word = original
+
+require 'pry-byebug'
+Curses.init_screen
+begin
+  loop do
+    Curses.crmode
+    # win.refresh
+    Curses.setpos((Curses.lines - 1) / 2, (Curses.cols - 11) / 2)
+    foobar = Curses.get_char
+    if foobar.ord == 127 || foobar.ord == 8
+      # Curses.addstr("remove")
+      word = word[0..-2]
+    else
+      word = "#{word}#{foobar}"
+    end
+
+    show_message(word)
+    # Curses.addstr("The word is #{word}")
+    # Curses.addstr("key is #{foobar.ord.to_s}")
+    # Curses.addstr("Enter is #{Curses::Key::ENTER}")
+    # Curses.addstr("BACKSPACE is #{Curses::Key::BACKSPACE}")
+    # if foobar == "^?"
+    #   Curses.addstr("You pressed backspace")
+    # # Curses.refresh
+    # end
+    # if foobar == 's'
+    #   Curses.addstr('you pressed s')
+    # end
+    # if foobar.ord == 10
+    #   Curses.addstr('you pressed enter')
+    # end
+
+    break if foobar.ord == 10
+  end
+
+  # Curses.getch
+  # show_message("Hello, World!")
+ensure
+  Curses.close_screen
+
+  puts word
+end

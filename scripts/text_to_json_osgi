@@ -1,0 +1,111 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require 'json'
+require 'active_support'
+require 'active_support/core_ext'
+
+class OsgiConfiguration
+  ARRAY = 'Array'
+  INTEGER = 'Integer'
+  FLOAT = 'Float'
+  BOOLEAN = 'Boolean'
+  STRING = 'String'
+
+  attr_reader :name, :properties
+
+  def initialize(name)
+    @name = name.to_s.strip
+    @properties = {}
+  end
+
+  def append(name, value)
+    name = name.to_s.strip
+    return if name == 'Factory PID'
+
+    value = value.to_s.strip
+    value = convert(value)
+
+    @properties[name] = value
+  end
+
+  private
+
+  def type(value)
+    if value.start_with?('[')
+      ARRAY
+    elsif value.match?(/\d+\.\d+/)
+      FLOAT
+    elsif value.start_with?(/\d/)
+      INTEGER
+    elsif value.start_with?(/true|false/)
+      BOOLEAN
+    else
+      STRING
+    end
+  end
+
+  def convert(value)
+    case type(value)
+    when ARRAY
+      convert_to_array(value)
+    when INTEGER
+      value.to_i
+    when FLOAT
+      value.to_f
+    when BOOLEAN
+      value == 'true'
+    else
+      value
+    end
+  end
+
+  def convert_to_array(value)
+    array_regex = /^\[(.*)\]$/
+    values = array_regex.match(value)[1] || []
+
+    values.split(',')
+      .map(&:strip)
+      .map { |item| convert(item) }
+  end
+end
+
+def save_osgi_configuration(root_directory, configuration)
+  path = File.join(root_directory, "org.apache.sling.event.jobs.QueueConfiguration~#{configuration.name}.cfg.json")
+  properties = JSON.pretty_generate(configuration.properties)
+
+  File.write(path, properties)
+  puts "Configuration name is #{configuration.name}"
+
+  properties = JSON.pretty_generate(configuration.properties)
+  puts "Values are: #{properties}"
+end
+
+def read_argument(number)
+  result = ARGV[number].to_s
+  raise "Failed to read argument: #{number}" if result.nil?
+
+  result
+end
+
+TEXT_PATH = read_argument(0)
+ROOT_DIRECTORY = read_argument(1)
+
+BEGIN_JOB_QUEUE_REGEX = /^PID = org\.apache\.sling\.event\.jobs\.QueueConfiguration~(.+)$/
+
+current_osgi = nil
+File.readlines(TEXT_PATH).map(&:strip).each do |line|
+  if line.match? BEGIN_JOB_QUEUE_REGEX
+    osgi_configuration_name = line.match(BEGIN_JOB_QUEUE_REGEX)[1]
+
+    current_osgi = OsgiConfiguration.new(osgi_configuration_name)
+  elsif line.blank?
+    save_osgi_configuration(ROOT_DIRECTORY, current_osgi) unless current_osgi.nil?
+
+    current_osgi = nil
+  elsif !current_osgi.nil? && line.match?(' = ')
+    key, value = Array(line.split(' = '))
+
+    current_osgi.append(key, value)
+  end
+end

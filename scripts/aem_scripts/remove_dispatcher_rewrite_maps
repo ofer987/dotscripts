@@ -1,0 +1,25 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+REWRITE_MAP_REGEX = /RewriteMap.*dbm/i
+
+rules = Dir.glob('dispatcher/src/**/*.rules')
+rendered_rules = Dir.glob('dispatcher/src/**/*.render')
+
+all_rules = rules.concat(rendered_rules)
+
+def rewrite_file(path)
+  lines = File.readlines(path)
+    .map(&:chomp)
+    .reject { |line| line.match? REWRITE_MAP_REGEX }
+    .join("\n")
+
+  File.write(path, lines)
+rescue StandardError => e
+  puts "Failed to rewrite #{path} because of #{e}"
+  puts 'Continuing to next file'
+end
+
+all_rules.each do |path|
+  rewrite_file(path)
+end

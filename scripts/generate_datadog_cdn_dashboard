@@ -1,0 +1,165 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require 'pry-byebug'
+require 'json'
+
+# IS_PROD = ENV['PROD'] || true
+
+PROD_DOMAINS = [
+  {
+    name: 'www.thomsonreuters.com',
+    color: 'grey',
+    palette_index: 6
+  },
+  {
+    name: 'tax.thomsonreuters.com',
+    color: 'warm',
+    palette_index: 6
+  },
+  {
+    name: 'legal.thomsonreuters.com',
+    color: 'green',
+    palette_index: 0
+  },
+  {
+    name: 'www.thomsonreuters.ca',
+    color: 'purple',
+    palette_index: 5
+  },
+  {
+    name: 'www.thomsonreuters.com.ar',
+    color: 'blue',
+    palette_index: 6
+  },
+  {
+    name: 'www.thomsonreuters.com.br',
+    color: 'dd20',
+    palette_index: 15
+  },
+  {
+    name: 'www.thomsonreutersmexico.mx',
+    color: 'green',
+    palette_index: 6
+  }
+].freeze
+
+def render_domain_formula(iteration, domain_name, color)
+  iteration *= 2
+
+  {
+    'alias' => domain_name,
+    'style' => {
+      'palette' => color,
+      'palette_index' => 6
+    },
+    'formula' => "query#{iteration + 1} / query#{iteration + 2} * 100"
+  }
+end
+
+# rubocop:disable Metrics/MethodLength
+def render_domain_queries(iteration, domain_name)
+  iteration *= 2
+
+  [
+    {
+      'data_source' => 'logs',
+      'name' => "query#{iteration + 1}",
+      'indexes' => [
+        '*'
+      ],
+      'compute' => {
+        'aggregation' => 'count'
+      },
+      'group_by' => [],
+      'search' => {
+        'query' => "service:cdn @x-host-header:#{domain_name} @x-edge-result-type:Hit"
+      },
+      'storage' => 'hot'
+    },
+    {
+      'data_source' => 'logs',
+      'name' => "query#{iteration + 2}",
+      'indexes' => [
+        '*'
+      ],
+      'compute' => {
+        'aggregation' => 'count'
+      },
+      'group_by' => [],
+      'search' => {
+        'query' => "service:cdn @x-host-header:#{domain_name}"
+      },
+      'storage' => 'hot'
+    }
+  ]
+end
+# rubocop:enable Metrics/MethodLength
+
+def y_axis
+  {
+    'yaxis' => {
+      'include_zero' => true,
+      'min' => '0',
+      'max' => '100'
+    }
+  }
+end
+
+def markers
+  {
+    'markers' => [
+      {
+        'label' => ' Good^ ',
+        'value' => 'y = 90',
+        'type' => 'info solid'
+      },
+      {
+        'label' => ' Bad^ ',
+        'value' => 'y = 50',
+        'type' => 'warning dashed'
+      },
+      {
+        'label' => ' Inefficient ',
+        'value' => 'y = 25',
+        'type' => 'error dashed'
+      }
+    ]
+  }
+end
+
+def json(domains)
+  formulae = domains.size.times
+    .map do |i|
+      name = domains[i][:name]
+      color = domains[i][:color]
+
+      render_domain_formula(i, name, color)
+    end
+
+  queries = domains.size.times
+    .map { |i| render_domain_queries(i, domains[i][:name]) }
+    .flatten
+  # binding.pry
+
+  {
+    'viz' => 'timeseries',
+    'requests' => [
+      {
+        'style': {
+          'palette' => 'dog_classic',
+          'type' => 'solid',
+          'width' => 'normal'
+        },
+        'type' => 'line',
+        'formulas' => formulae,
+        'queries' => queries,
+        'response_format': 'timeseries'
+      }
+    ],
+    'yaxis': y_axis['yaxis'],
+    'markers': markers['markers']
+  }
+end
+
+puts JSON.generate(json(PROD_DOMAINS))

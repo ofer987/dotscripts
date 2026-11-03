@@ -1,0 +1,112 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require_relative '../lib/git_scripts'
+
+def open_link(url)
+  return false if url.blank?
+
+  if /darwin/.match? RUBY_PLATFORM
+    `open #{url}`
+  else
+    puts url
+  end
+
+  true
+end
+
+def title(work_item)
+  work_item.to_s
+end
+
+def body(work_item, base_branch)
+  <<~BODY
+    [#{work_item.key}](#{work_item.url})
+
+    ## Description
+
+    #{description(base_branch)}
+
+    ## Reviewers
+
+    - [ ] @
+    - [ ] @
+  BODY
+end
+
+def description(base_branch)
+  github_body = github_commit_bodies(base_branch).join("\n")
+
+  return github_body unless github_body.blank?
+
+  "Please include a summary of the change and/or which issue is fixed. Please also include relevant motivation \
+  and context. List any dependencies that are required for this change."
+end
+
+def github_commit_bodies(base_branch)
+  `git log #{base_branch}..HEAD --format="%B"`.split("\n")
+    .reject(&:blank?)
+    .map(&:to_sentencecase)
+end
+
+def select_pull_request(pull_requests)
+  puts 'Select Pull Request:'
+
+  pull_requests.size.times.each do |i|
+    puts "\t#{i + 1}. #{pull_requests[i].title}"
+  end
+
+  puts 'Enter your choice:'
+  while true
+    index = gets.chomp.to_i
+    break if index >= 1 && index <= pull_requests.size
+
+    puts "Choose between 1 and #{pull_requests.size}"
+  end
+
+  pull_requests[index - 1].html_url
+end
+
+def existing_pull_requests(branch_name, base_branch)
+  GitScripts::GitHub.new
+    .open_pull_requests(branch_name, base_branch)
+end
+
+def remote
+  GitScripts::Git.repo_url
+end
+
+begin
+  base = ARGV[0] || GitScripts::Git.default_base_branch
+  remote = ARGV[1] || GitScripts::Git.repo_id
+  head = GitScripts::Git.branch_name
+  base_branch = "#{GitScripts::Git.default_remote}/#{base}"
+
+  pull_requests = existing_pull_requests(head, base)
+
+  if pull_requests.size == 1
+    exit 0 if open_link(pull_requests.first.html_url)
+  elsif pull_requests.size > 1
+    url = select_pull_request(pull_requests)
+
+    exit 0 if open_link(url)
+  else
+    work_item = WorkItem.create(head)
+
+    raise WorkItem::INVALID if work_item.nil?
+
+    pr_title = title(work_item)
+    pr_message = body(work_item, base_branch)
+
+    result = GitScripts::GitHub.new
+      .create_pull_request(remote, base, head, pr_title, pr_message)
+
+    throw "Failed to create Pull Request for branch #{head} against #{base}" if result.blank?
+    open_link(result.html_url)
+  end
+rescue StandardError => e
+  puts e.backtrace
+  puts e.message
+end
+
+exit 1

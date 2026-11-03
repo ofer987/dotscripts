@@ -1,0 +1,24 @@
+PATH
+  remote: .
+  specs:
+    new_candidate (0.1.0)
+      mustache (~> 1.1.1)
+      thor (~> 1.1.0)
+
+GEM
+  remote: https://rubygems.org/
+  specs:
+    mustache (1.1.1)
+    rake (10.5.0)
+    thor (1.1.0)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  bundler (~> 2.2.9)
+  new_candidate!
+  rake (~> 10.0)
+
+BUNDLED WITH
+   2.2.9

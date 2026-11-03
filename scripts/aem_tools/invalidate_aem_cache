@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# NOTE: can user be dan.ofer ? Yes
+# TODO: what value should be used instead of E1HSZC94V2RU3U ?
+
+ssh dan.ofer@thomsonreuters-stg-author1useast1 "/mnt/cqms_troubleshoot/cf-invalidate.sh E1HSZC94V2RU3U /etc/*"
+
+# Examp[le{"Location":"https://cloudfront.amazonaws.com/2020-05-31/distribution/E1HSZC94V2RU3U/invalidation/I3P6YYFV1F98Z8","Invalidation":{"Id":"I3P6YYFV1F98Z8","Status":"InProgress","CreateTime":"2022-08-08T15:27:47.648Z","InvalidationBatch":{"Paths":{"Quantity":1,"Items":["/etc/*"]},"CallerReference":"638fc106-61ba-47e0-b598-78037b24d455"}}}

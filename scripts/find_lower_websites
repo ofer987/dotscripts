@@ -1,0 +1,42 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require 'active_support'
+require 'active_support/core_ext'
+
+AEM_ENVIRONMENT = ARGV[0].to_s.downcase
+
+exit 1 unless %w[dev qa uat ppe].include? AEM_ENVIRONMENT
+
+VARIABLE_LOCATION = File.join('dispatcher', 'src', 'conf.d', 'variables').freeze
+VHOST_LOCATION = File.join('dispatcher', 'src', 'conf.d', 'enabled_vhosts').freeze
+
+variables = Dir.entries(VHOST_LOCATION)
+  .map { |item| File.join(VHOST_LOCATION, item) }
+  .select { |item| File.stat(item).file? }
+  .flat_map do |item|
+    File.readlines(item)
+      .select { |line| line =~ /\{(.+TEST_DOMAIN)}/ }
+      .map { |line| line.match(/\{(.+TEST_DOMAIN)\}/)[1] }
+  end.reject(&:blank?).uniq
+
+websites = Dir.entries(VARIABLE_LOCATION)
+  .map { |item| File.join(VARIABLE_LOCATION, item) }
+  .select { |item| File.stat(item).file? }
+  .flat_map do |item|
+    File.readlines(item)
+      .flat_map do |line|
+        variables
+          .select { |var| line =~ /^define #{var} (.+)$/i }
+          .map { |var| line.match(/define #{var} (.+)$/i)[1] }
+      end
+  end
+
+websites = websites
+  .reject(&:blank?)
+  .uniq
+  .map { |item| item.gsub('${ENV_TYPE}', AEM_ENVIRONMENT) }
+
+puts websites
+  .map { |item| "https://#{item}" }
+  .join("\n")

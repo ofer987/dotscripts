@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+tic -x $(project)/tmux/xterm-256color.terminfo.txt

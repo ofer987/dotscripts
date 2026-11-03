@@ -1,0 +1,187 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+WEBSITES = [
+  {
+    base_url: 'https://www.thomsonreuters.com/en',
+    jcr_path: '/content/ewp-marketing-websites/thomsonreuters/gl/en',
+    add_html: true
+  },
+  {
+    base_url: 'https://store.tax.thomsonreuters.com.au/en',
+    jcr_path: '/content/aus/en/store',
+    add_html: true
+  },
+  {
+    base_url: 'https://store.thomsonreuters.ca/en-ca',
+    jcr_path: '/content/ue/en-ca',
+    add_html: true
+  },
+  {
+    base_url: 'https://store.thomsonreuters.ca/fr-ca',
+    jcr_path: '/content/ue/fr-ca',
+    add_html: true
+  },
+  {
+    base_url: 'https://www.thomsonreuters.ca/en',
+    jcr_path: '/content/ewp-marketing-websites/ca/en',
+    add_html: true
+  },
+  {
+    base_url: 'https://trial.thomsonreuters.ca',
+    jcr_path: '/content/carswell',
+    add_html: true
+  },
+  {
+    base_url: 'https://legal.thomsonreuters.com/en',
+    jcr_path: '/content/ewp-marketing-websites/legal/gl/en',
+    add_html: false
+  },
+  {
+    base_url: 'https://legal.thomsonreuters.com/en-ca',
+    jcr_path: '/content/ue/en-ca',
+    add_html: false
+  },
+  {
+    base_url: 'https://sales.legalsolutions.thomsonreuters.com/en-us',
+    jcr_path: '/content/ue/en-us',
+    add_html: false
+  },
+  {
+    base_url: 'https://www.thomsonreuters.com.arg/es',
+    jcr_path: '/content/ewp-marketing-websites/arg/es',
+    add_html: true
+  },
+  {
+    base_url: 'https://store.thomsonreuters.ca/en-ca',
+    jcr_path: '/content/ue/en-ca',
+    add_html: true
+  },
+  {
+    base_url: 'https://www.thomsonreuters.co.jp/ja',
+    jcr_path: '/content/ewp-marketing-websites/japan/ja',
+    add_html: true
+  },
+  {
+    base_url: 'https://www.thomsonreuters.com.br/pt',
+    jcr_path: '/content/ewp-marketing-websites/brazil/pt',
+    add_html: true
+  },
+  {
+    base_url: 'https://tax.thomsonreuters.com/en',
+    jcr_path: '/content/ewp-marketing-websites/tax/gl/en',
+    add_html: false
+  },
+  {
+    base_url: 'https://legalsolutions.thomsonreuters.co.uk/en',
+    jcr_path: '/content/ewp-marketing-websites/uk-legal-solutions/en',
+    add_html: true
+  },
+  {
+    base_url: 'https://www.thomsonreuters.es/es',
+    jcr_path: '/content/spain/es',
+    add_html: true
+  }
+].freeze
+
+def convert_to_url(jcr_path)
+  website = WEBSITES
+    .select { |item| jcr_path.include?(item[:jcr_path]) }
+    .first
+
+  if website.nil?
+    puts "#{jcr_path} does not exist in the WEBSITES object!"
+
+    exit 1
+  end
+
+  test_path = jcr_path.gsub(website[:jcr_path], '')
+  test_webpage = "#{website[:base_url]}#{test_path}"
+  test_webpage += '.html' if website[:add_html]
+
+  test_webpage
+end
+
+def convert_to_test_url(jcr_path)
+  website = WEBSITES
+    .select { |item| jcr_path.include?(item[:jcr_path]) }
+    .first
+
+  if website.nil?
+    puts "#{jcr_path} does not exist in the WEBSITES object!"
+
+    exit 1
+  end
+
+  test_path = child_path(jcr_path)
+  test_webpage = "#{website[:base_url]}/test-pages/#{test_path}"
+  test_webpage += '.html' if website[:add_html]
+
+  test_webpage
+end
+
+def convert_to_test_path(jcr_path)
+  website = WEBSITES
+    .select { |item| jcr_path.include?(item[:jcr_path]) }
+    .first
+
+  if website.nil?
+    puts "#{jcr_path} does not exist in the WEBSITES object!"
+
+    exit 1
+  end
+
+  child_path = child_path(jcr_path)
+  "#{website[:jcr_path]}/test-pages/#{child_path}"
+end
+
+def child_path(jcr_path)
+  jcr_path.split('/')[-1]
+end
+
+def parent_path(jcr_path)
+  jcr_path.split('/')[..-2].join('/')
+end
+
+FILEPATH = ARGV[0]
+
+lines = IO.readlines(FILEPATH)
+require 'pry-byebug'
+
+headers = [
+  'Empty',
+  'Empty',
+  'Empty',
+  'URL',
+  'Test URL',
+  'JCR Path',
+  'JCR Test Path',
+  'Count'
+]
+
+results = lines[1..]
+  .map { |line| line.split(',').map(&:strip) }
+  .map do |line|
+    [
+      '',
+      '',
+      '',
+      convert_to_url(line[0]),
+      convert_to_test_url(line[0]),
+      line[0],
+      convert_to_test_path(line[0]),
+      line[1]
+    ].join(', ')
+  end
+
+begin
+  file = File.open('page_results.csv', 'wt')
+
+  file.write(headers.join(', '))
+  file.write("\n")
+  file.write(results.join("\n"))
+rescue StandardError => e
+  puts e
+ensure
+  file.close if !file.nil? && !file.closed?
+end

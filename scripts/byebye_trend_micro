@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+
+# kill processes
+sudo pkill -i zscaler
+sudo pkill -fi 'trend'
+
+# Kill launch scripts
+sudo rm -f /Library/LaunchDaemons/com.trendmicro.icore.ec.plist
+sudo rm -f /Library/LaunchDaemons/com.trendmicro.icore.misc.plist
+sudo rm -f /Library/LaunchDaemons/com.trendmicro.icore.xdr.plist
+sudo rm -f /Library/LaunchDaemons/com.trendmicro.tmes.plugin.plist
+sudo rm -f /Library/LaunchDaemons/com.trendmicro.tmsm.rpd.plist
+sudo rm -f /Library/LaunchDaemons/com.trendmicro.*
+sudo rm -f /Library/LaunchAgents/com.trendmicro.TmLoginMgr.plist
+
+# kill processes
+pkill -fi 'trend'
+# Delete the directory
+sudo rm -rf /Library/Application\ Support/TrendMicro/
+
+# Kill application files
+sudo rm -f /Library/Application\ Support/TrendMicro/TmccMac/TmLoginMgr.app/Contents/MacOS/TmLoginMgr
+sudo rm -f /Library/Application\ Support/TrendMicro/TmccMac/UIMgmt.app/Contents/MacOS/UIMgmt
+sudo rm -f /Library/Application\ Support/TrendMicro/TmccMac/iCoreService_tmsm
+sudo rm -f /Library/Application\ Support/TrendMicro/Plug-in/TMCNTMgmt.framework/TMCNTMgmt
+sudo rm -f /Library/Application\ Support/TrendMicro/TmccMac/iCoreService_wp
+sudo rm -f /Library/Application\ Support/TrendMicro/common/lib/libTmProxy.dylib
+sudo rm -f /Library/Application\ Support/TrendMicro/TmccMac/iCoreService
+sudo rm -f /Library/Application\ Support/TrendMicro/common/lib/libnamingService.dylib
+sudo rm -f /Library/Application\ Support/TrendMicro/common/lib/libtaskManager.dylib
+sudo rm -f /Library/Application\ Support/TrendMicro/common/lib/libnotificationService.dylib
+sudo rm -f /Library/Application\ Support/TrendMicro/common/lib/libTmUpdate.dylib
+sudo rm -f /Library/Application\ Support/TrendMicro/common/lib/libTmDb.dylib
+sudo rm -f /Library/Application\ Support/TrendMicro/common/lib/libfeedback.dylib
+sudo rm -f /Library/Application\ Support/TrendMicro/TmccMac/TmLoginMgr.app/Contents/MacOS/TmLoginMgr
+sudo rm -rf /Library/Application\ Support/TrendMicro/
+
+# Kill processes again
+sudo pkill -fi 'trend'
+sudo pkill -i zscaler
+
+# Delete the directory
+sudo rm -rf /Library/Application\ Support/TrendMicro/
+sudo rm -rf /Library/Application\ Support/TrendMicro/

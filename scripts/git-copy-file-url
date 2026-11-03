@@ -1,0 +1,10 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+url = if ARGV.size == 2
+        `git file-url #{ARGV[0]} #{ARGV[1]}`.strip
+      else
+        `git file-url #{ARGV[0]}`.strip
+      end
+
+`echo #{url.strip} | pbcopy`

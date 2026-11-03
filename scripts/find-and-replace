@@ -1,0 +1,46 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+filenames = ARGV[0..-3]
+  .map(&:to_s)
+  .map(&:strip)
+  .reject(&:empty?)
+find_pattern = ARGV[-2].to_s.strip
+replace_text = ARGV[-1].to_s.strip
+
+raise 'the find pattern was not specified' if find_pattern.empty?
+raise 'the replace text was not specified' if replace_text.empty?
+
+filenames.each do |filename|
+  puts "replacing text in (#{filename})"
+
+  begin
+    next unless File.exist?(filename)
+  rescue => error
+    puts "Error looking for file (#{filename})"
+
+    puts error.class
+    puts error.message
+    puts error.backtrace
+
+    puts 'Proceeding to next file'
+    next
+  end
+
+  begin
+    replaced_text = File
+      .read(filename, mode: 'r')
+      .gsub(find_pattern, replace_text)
+
+    IO.write(filename, replaced_text, mode: 'w')
+  rescue => error
+    puts "Error replacing text in (#{filename})"
+
+    puts error.class
+    puts error.message
+    puts error.backtrace
+
+    puts 'Proceeding to next file'
+    next
+  end
+end

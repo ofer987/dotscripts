@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+set -e;
+
+SONARQUBE_HOST="http://localhost:9000";
+SONARQUBE_TOKEN="sqp_462c23c30eb690a028814ee32f9e0c8f26b688c9";
+SONAR_PROJECT_KEY="AEM";
+
+JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home/ mvn sonar:help
+  # -Dsonar.host.url=$SONARQUBE_HOST \
+  # -Dsonar.login=$SONARQUBE_TOKEN \
+  # -Dsonar.projectKey=$SONAR_PROJECT_KEY \
+  # -Dsonar.java.binaries=**/target/classes \
+  # -Dsonar.scm.provider=tfvc \
+  # -Dsonar.tfvc.collectionuri=https://workaround-tfvc-plugin-issue/DefaultCollection \
+  # -Dmaven.compiler.source=1.8 \
+  # -Dmaven.compiler.target=1.8;

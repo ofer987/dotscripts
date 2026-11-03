@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+SOURCE_DIRECTORY=$(dirname $0)/Actions/localhost.lbaction
+TARGET_DIRECTORY=/Users/ofer987/Library/Application\ Support/LaunchBar/Actions/localhost.lbaction
+
+echo "source is ${SOURCE_DIRECTORY}"
+if [[ -d "${TARGET_DIRECTORY}" ]]; then
+  echo "Doing nothing because ${TARGET_DIRECTORY} already exists as a directory"
+elif [[ -h "${TARGET_DIRECTORY}" ]]; then
+  echo "Doing nothing because ${TARGET_DIRECTORY} already exists as a symbolic link"
+elif [[ -e "${TARGET_DIRECTORY}" ]]; then
+  echo "Doing nothing because ${TARGET_DIRECTORY} already exists"
+else
+  ln -s "${SOURCE_DIRECTORY}" "${TARGET_DIRECTORY}"
+fi

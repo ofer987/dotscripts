@@ -1,0 +1,9 @@
+[submodule "fisherman/ssh-agent"]
+	path = fisherman/ssh-agent
+	url = https://github.com/tuvistavie/fish-ssh-agent
+[submodule "fisherman/theme"]
+  path = fisherman/theme
+  url = https://github.com/oh-my-fish/plugin-theme
+[submodule "fisherman/zish"]
+  path = fisherman/zish
+  url = https://github.com/oh-my-fish/theme-zish

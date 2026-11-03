@@ -1,0 +1,31 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require 'active_support'
+require 'active_support/core_ext'
+
+PT_REGEX = /rewriterule \S+ (\S+) \[.*PT.*\]/i
+emcm_web_root = ARGV[0].to_s
+
+rewrite_dir = File.join(emcm_web_root, 'dispatcher', 'src', 'conf.d', 'rewrites')
+
+paths = Dir.entries(rewrite_dir)
+  .select { |file| file =~ /\.rules$/ }
+  .map(&:to_s)
+  .reject(&:blank?)
+
+paths.each do |path|
+  file_path = File.join(rewrite_dir, path)
+
+  lines = File.readlines(file_path)
+    .map(&:chomp)
+
+  results = lines
+    .select { |line| line =~ PT_REGEX }
+    .map { |line| line.match(PT_REGEX)[1] }
+    .map(&:to_s)
+    .map { |line| line.gsub('"', '') }
+    .reject(&:blank?)
+
+  puts results.join("\n") unless results.empty?
+end

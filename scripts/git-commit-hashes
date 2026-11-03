@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+if [[ -z ${SINCE} ]]; then
+  echo 'SINCE variable is missing'
+  echo 'Use the format %YYYY-%MM-%DD'
+
+  exit 1
+fi
+
+if [[ -z ${UNTIL} ]]; then
+  echo 'UNTIL variable is missing'
+  echo 'Use the format %YYYY-%MM-%DD'
+
+  exit 1
+fi
+
+git log develop --since="${SINCE}" --until="${UNTIL}" --merges

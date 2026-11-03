@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+set +e;
+
+DEVELOP_BRANCH="origin/develop"
+DEV_BRANCH="adobe/devdeploy"
+
+NONE_RENDERED_FILES=$(git diff "${DEVELOP_BRANCH}..${DEV_BRANCH}" --name-only | ag --invert-match '^dispatcher\/render')
+git diff -B "${DEVELOP_BRANCH}..${DEV_BRANCH}" -- ${NONE_RENDERED_FILES}

@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+curl \
+  -X POST \
+  -H "Accept: application/vnd.github.v3+json" \
+  -H "Authorization: token ${TOKEN}" \
+  https://api.github.com/repos/tr/digital_emcm-web/actions/workflows/change_release_document.yml/dispatches \
+  -d "{ \
+    \"ref\": \"ab-688357-fix-change-release-document-test\"
+  }"

@@ -1,0 +1,90 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require 'csv'
+
+path = ARGV[0]
+require 'active_support'
+require 'active_support/core_ext'
+require 'pry-byebug'
+# binding.pry
+
+class User
+  attr_reader :user_id, :first_name, :last_name, :email, :group_ids
+
+  def initialize(user_id, first_name, last_name, email, group_ids)
+    @user_id = user_id.to_s
+    @first_name = first_name.to_s
+    @last_name = last_name.to_s
+    @email = email.to_s
+    @group_ids = Array(group_ids)
+  end
+
+  def to_s
+    return @to_s if defined? @to_s
+
+    @to_s = ''
+
+    if !first_name.blank?
+      @to_s = if last_name.blank?
+                "#{first_name} "
+              else
+                "#{first_name} #{last_name} "
+              end
+    else
+      @to_s = "#{last_name} " unless last_name.blank?
+    end
+
+    @to_s += "(#{user_id})"
+
+    @to_s += " (#{user_id})" unless @email.blank?
+
+    @to_s
+  end
+end
+
+# groups =
+csv = CSV.parse(IO.read(path))[1..]
+users = csv.map do |line|
+  group_ids = line[7].split('|').map(&:strip)
+
+  User.new(line[1], line[2], line[3], line[4], group_ids)
+end
+
+user_groups = {}
+
+groups = csv
+  .flat_map { |line| line[7].split('|').map(&:strip) }
+  .uniq
+  .each do |group_id|
+    user_groups[group_id] = {
+      group_id:,
+      users: []
+    }
+  end
+
+csv
+  .map do |line|
+    group_ids = line[7].split('|').map(&:strip)
+    user = User.new(line[1], line[2], line[3], line[4], group_ids)
+
+    group_ids.each do |group_id|
+      user_groups[group_id][:users] << user
+    end
+  end
+
+# binding.pry
+# creative_groups = user_groups.select { |key, _value| key =~ /creative/ }
+# gcs_groups = user_groups.select { |key, _value| key =~ /gcs/ }
+admin_groups = user_groups.select { |key, _value| key == 'administrators' }
+
+# binding.pry
+puts admin_groups
+  .map { |_group_name, group| group }
+  .flat_map { |group| group[:users] }
+  .join("\n")
+# puts creative_groups
+# puts user_groups.size
+
+# puts users
+# puts groups.join("\n")

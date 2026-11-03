@@ -1,0 +1,78 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require 'time'
+
+class SemVer
+  include Comparable
+
+  REGEX = /(\d+)\.(\d+)\.(\d+)(?:\.(\d+))?$/
+
+  def self.create_semver(value)
+    return NULL unless value.match? REGEX
+
+    version = value.match(REGEX)
+    new(value, version[1], version[2], version[3], version[4] || 0)
+  end
+
+  attr_reader :original_value, :major, :minor, :patch, :sub_patch
+
+  def initialize(original_value, major, minor, patch, sub_patch = 0)
+    @original_value = original_value.to_s
+    @major = major.to_i
+    @minor = minor.to_i
+    @patch = patch.to_i
+    @sub_patch = sub_patch.to_s
+  end
+
+  def to_s
+    @original_value
+  end
+
+  def <=>(other)
+    maj = major.to_i <=> other.major.to_i
+    return maj unless maj.zero?
+
+    min = minor.to_i <=> other.minor.to_i
+    return min unless min.zero?
+
+    pat = patch.to_i <=> other.patch.to_i
+    return pat unless pat.zero?
+
+    sub_pat = to_time(sub_patch) <=> to_time(other.sub_patch)
+    return sub_pat unless sub_pat.zero?
+
+    0
+  end
+
+  def nil?
+    false
+  end
+
+  class Null < SemVer
+    def nil?
+      true
+    end
+  end
+
+  NULL = SemVer::Null.new(0, 0, 0, 0)
+
+  private
+
+  def to_time(value)
+    Time.strptime(value.to_s, '%Y%m%d_%H%M%S')
+  rescue ArgumentError
+    0
+  end
+end
+
+STANDARD_IN = $stdin
+
+results = STANDARD_IN
+  .map(&:strip)
+  .map { |item| SemVer.create_semver(item) }
+  .reject(&:nil?)
+  .uniq
+  .sort
+
+puts results.join("\n")

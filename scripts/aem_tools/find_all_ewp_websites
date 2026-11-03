@@ -1,0 +1,64 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require 'active_support'
+
+VARIABLES_PATH = File.join(Dir.pwd, 'dispatcher', 'src', 'conf.d', 'variables')
+WEBSITE_REGEX = /define\s+\S+\s+(\S+)/i
+
+def prod_websites(path)
+  IO.readlines(path)
+    .map { |line| Array(line.match(WEBSITE_REGEX))[1].to_s }
+    .select { |line| line.match?(/\./) }
+    .reject { |line| line.match?(/ENV_TYPE/i) }
+    .reject(&:blank?)
+    .map { |domain| "https://#{domain}" }
+end
+
+def websites(path, environment_name)
+  IO.readlines(path)
+    .map { |line| Array(line.match(WEBSITE_REGEX))[1].to_s }
+    .select { |line| line.match?(/\./) }
+    .select { |line| line.match?(/ENV_TYPE/i) }
+    .map { |line| line.gsub('${ENV_TYPE}', environment_name) }
+    .reject(&:blank?)
+    .map { |domain| "https://#{domain}" }
+end
+
+def print_prod_websites
+  puts "Prod Websites:\n"
+
+  paths = Dir.entries(VARIABLES_PATH)
+    .reject { |entry| ['.', '..'].include? entry }
+    .map { |entry| File.join(VARIABLES_PATH, entry) }
+    .select { |path| File.exist? path }
+    .flat_map { |path| prod_websites(path) }
+    .sort
+    .uniq
+
+  puts paths.join("\n")
+end
+
+def print_lower_websites(environment_name)
+  puts "#{environment_name.upcase} Websites:\n"
+
+  paths = Dir.entries(VARIABLES_PATH)
+    .reject { |entry| ['.', '..'].include? entry }
+    .map { |entry| File.join(VARIABLES_PATH, entry) }
+    .select { |path| File.exist? path }
+    .flat_map { |path| websites(path, environment_name.downcase) }
+    .sort
+    .uniq
+
+  puts paths.join("\n")
+end
+
+print_lower_websites('dev')
+puts
+print_lower_websites('qa')
+puts
+print_lower_websites('uat')
+puts
+print_lower_websites('ppe')
+puts
+print_prod_websites

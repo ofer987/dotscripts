@@ -1,0 +1,47 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require 'active_support'
+require 'active_support/core_ext'
+require 'rest-client'
+require 'pry-byebug'
+require 'nokogiri'
+
+PATH = ARGV[0].to_s
+COOKIE_PATH = ARGV[1].to_s
+URL = 'https://author-prod-ams.ewp.thomsonreuters.com/mnt/overlay/wcm/core/content/sites/components/details/liveusage.0.40.html/apps/ue/components/content/global-product-detail'
+COOKIE = File.read(COOKIE_PATH).to_s.chomp
+
+def get_url(component_name)
+  "https://author-prod-ams.ewp.thomsonreuters.com/mnt/overlay/wcm/core/content/sites/components/details/liveusage.0.40.html#{component_name}"
+end
+
+def find_live_usages(component_name)
+  url = get_url(component_name)
+
+  headers = {
+    'Cookie' => COOKIE
+  }
+
+  RestClient.get(url, headers).body
+rescue RestClient::Exception
+  # Silently continue on
+end
+
+component_paths = File.readlines(PATH)
+  .map(&:chomp)
+  .map { |line| line.gsub(%r{/design_dialog$}, '') }
+  .map { |line| line.gsub(%r{/dialog$}, '') }
+
+component_paths.each do |item|
+  result = find_live_usages(item)
+  xml = Nokogiri::XML(result)
+
+  results = xml.css('table tbody tr td span')
+    .map(&:text)
+    .map(&:to_s)
+    .reject(&:blank?)
+    .map { |content_path| "#{item},#{content_path}" }
+
+  puts results.join("\n") unless results.empty?
+end

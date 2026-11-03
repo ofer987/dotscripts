@@ -1,0 +1,31 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require 'pry-byebug'
+require 'active_support'
+require 'active_support/core_ext'
+
+CONTENT_PATH = ARGV[0].to_s
+JCR_ROOTS_PATH = ARGV[1].to_s
+
+def does_content_path_belong_in_any_jcr_roots(content_path, jcr_roots)
+  jcr_roots.each do |root|
+    # binding.pry
+    return true if content_path.match?(/^#{root}/i)
+  end
+
+  false
+end
+
+content_paths = File.readlines(CONTENT_PATH)
+  .map(&:chomp)
+
+jcr_roots = File.readlines(JCR_ROOTS_PATH)
+  .map(&:chomp)
+
+content_paths.each do |content_path|
+  belongs_in_a_jcr_root = does_content_path_belong_in_any_jcr_roots(content_path, jcr_roots)
+
+  # binding.pry if belongs_in_a_jcr_root == false
+  puts "#{content_path},#{belongs_in_a_jcr_root}"
+end

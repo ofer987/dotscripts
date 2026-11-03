@@ -1,0 +1,153 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require 'pry-byebug'
+require 'base64'
+require 'rest-client'
+require 'active_support'
+require 'active_support/core_ext'
+require 'nokogiri'
+
+AUTHORIZATION_HEADER = 'Authorization'
+X_AEM_CANARY_HEADER = 'X-AEM-Canary'
+COOKIE = ENV['COOKIE'].to_s.strip
+IS_CANARY_ACTIVE = ENV['IS_CANARY_ACTIVE'].to_s.strip.downcase || 'true'
+
+PUBLISH_USERNAME = ENV['PUBLISH_USERNAME']
+PUBLISH_PASSWORD = ENV['PUBLISH_PASSWORD']
+
+ORIGIN = 'https://author-p163316-e1779165.adobeaemcloud.com'
+PUBLISH_ORIGIN = 'https://innovation-tr-com-ppe-cs.ewp.thomsonreuters.com'
+
+VERSION_JSON_URL = "#{ORIGIN}/content/tr-settings/endpointsMapping/version.json".freeze
+UNAUTHENTICATED_VERSION_JSON_URL = "#{ORIGIN}/content/tr-settings/endpointsMapping/version-unauthenticated.json".freeze
+INNOVATION_LANDING_URL = "#{PUBLISH_ORIGIN}/en.html".freeze
+
+def get_credentials(username, password)
+  Base64.encode64("#{username}:#{password}").chomp
+end
+
+def test_page_title(url, headers, expected_page_title)
+  response = RestClient.get url, headers
+
+  html = Nokogiri::HTML(response.body)
+
+  html.css('html > head > title').text == expected_page_title
+rescue RestClient::Exception
+  false
+end
+
+def test_http_status_code(url, headers, expected_http_status)
+  response = RestClient.get url, headers
+
+  response.code == expected_http_status if expected_http_status == 200
+rescue RestClient::Exception => e
+  e.http_code == expected_http_status
+end
+
+def test_http_body_is_not_blank(url, headers)
+  response = RestClient.get url, headers
+
+  !response.body.blank?
+rescue RestClient::Exception
+  false
+end
+
+def test_function(block, *args)
+  result = block.call(*args)
+  # binding.pry
+  arguments = args.join("\n\t")
+
+  puts "Success for #{block.name} with arguments \n\t#{arguments}" if result == true
+  puts "Failure for #{block.name} with arguments \n\t#{arguments}" unless result == true
+end
+
+TEST_TEST_PAGE_TITLE_METHOD = method(:test_page_title)
+TEST_HTTP_STATUS_CODE_METHOD = method(:test_http_status_code)
+TEST_TEST_HTTP_BODY_IS_NOT_BLANK_METHOD = method(:test_http_body_is_not_blank)
+
+def test_stage(is_canary: false)
+  credentials = get_credentials(PUBLISH_USERNAME, PUBLISH_PASSWORD)
+
+  headers = {}
+  headers[X_AEM_CANARY_HEADER] = 'true' if is_canary
+
+  publish_headers = {
+    X_AEM_CANARY_HEADER => 'true',
+    AUTHORIZATION_HEADER => "Basic #{credentials}"
+  }
+  publish_headers[AUTHORIZATION_HEADER] = "Basic #{credentials}" if is_canary
+
+  authentication_headers = {
+    'Cookie' => COOKIE
+  }
+  authentication_headers[X_AEM_CANARY_HEADER] = 'true' if is_canary
+
+  canary_string = ''
+  canary_string = ' (as Canary)' if is_canary
+  puts "Testing Stage/PPE#{canary_string}"
+
+  # Test version.json
+  test_function(TEST_HTTP_STATUS_CODE_METHOD, VERSION_JSON_URL, headers, 200)
+  test_function(TEST_TEST_HTTP_BODY_IS_NOT_BLANK_METHOD, VERSION_JSON_URL, headers)
+
+  # Test version-unauthenticated.json
+  test_function(TEST_HTTP_STATUS_CODE_METHOD, UNAUTHENTICATED_VERSION_JSON_URL, headers, 401)
+  test_function(TEST_HTTP_STATUS_CODE_METHOD, UNAUTHENTICATED_VERSION_JSON_URL, authentication_headers, 200)
+
+  # Test Innovation page
+  test_function(TEST_HTTP_STATUS_CODE_METHOD, INNOVATION_LANDING_URL, headers, 401)
+  test_function(TEST_HTTP_STATUS_CODE_METHOD, INNOVATION_LANDING_URL, publish_headers, 200)
+
+  test_function(TEST_TEST_HTTP_BODY_IS_NOT_BLANK_METHOD, INNOVATION_LANDING_URL, publish_headers)
+  test_function(
+    TEST_TEST_PAGE_TITLE_METHOD,
+    INNOVATION_LANDING_URL,
+    publish_headers,
+    'Homepage | Innovation | Thomson Reuters'
+  )
+end
+
+def test_canary
+  credentials = get_credentials(PUBLISH_USERNAME, PUBLISH_PASSWORD)
+
+  headers = {
+    X_AEM_CANARY_HEADER => 'true'
+  }
+
+  publish_headers = {
+    X_AEM_CANARY_HEADER => 'true',
+    AUTHORIZATION_HEADER => "Basic #{credentials}"
+  }
+
+  authentication_headers = {
+    X_AEM_CANARY_HEADER => 'true',
+    'Cookie' => COOKIE
+  }
+
+  puts 'Testing Canary'
+
+  # Test version.json
+  test_function(TEST_HTTP_STATUS_CODE_METHOD, VERSION_JSON_URL, headers, 200)
+  test_function(TEST_TEST_HTTP_BODY_IS_NOT_BLANK_METHOD, VERSION_JSON_URL, headers)
+
+  # Test version-unauthenticated.json
+  test_function(TEST_HTTP_STATUS_CODE_METHOD, UNAUTHENTICATED_VERSION_JSON_URL, headers, 401)
+  test_function(TEST_HTTP_STATUS_CODE_METHOD, UNAUTHENTICATED_VERSION_JSON_URL, authentication_headers, 200)
+  test_function(TEST_TEST_HTTP_BODY_IS_NOT_BLANK_METHOD, UNAUTHENTICATED_VERSION_JSON_URL, authentication_headers)
+
+  # Test Innovation page
+  test_function(TEST_HTTP_STATUS_CODE_METHOD, INNOVATION_LANDING_URL, headers, 401)
+  test_function(TEST_HTTP_STATUS_CODE_METHOD, INNOVATION_LANDING_URL, publish_headers, 200)
+
+  test_function(TEST_TEST_HTTP_BODY_IS_NOT_BLANK_METHOD, INNOVATION_LANDING_URL, publish_headers)
+  test_function(
+    TEST_TEST_PAGE_TITLE_METHOD,
+    INNOVATION_LANDING_URL,
+    publish_headers,
+    'Homepage | Innovation | Thomson Reuters'
+  )
+end
+
+test_stage(is_canary: false)
+test_canary

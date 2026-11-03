@@ -1,0 +1,15 @@
+# PPE Marketing
+echo "Clearing PPE Marketing Cache"
+/mnt/cqms_troubleshoot/cf-invalidate.sh E3CU27Q7A9JNPS "/*"
+
+# PPE Transactional
+echo "Clearing PPE Transactional Cache"
+/mnt/cqms_troubleshoot/cf-invalidate.sh E25X28ADOM9GJL "/*"
+
+# Prod Marketing
+echo "Clearing Prod Marketing Cache"
+/mnt/cqms_troubleshoot/cf-invalidate.sh E3Q9ELIWRYL8CI "/*"
+
+# Prod Transactional
+echo "Clearing Prod Transactional Cache"
+/mnt/cqms_troubleshoot/cf-invalidate.sh E1HSZC94V2RU3U "/*"

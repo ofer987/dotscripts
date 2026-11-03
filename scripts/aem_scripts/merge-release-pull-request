@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+TITLE='[AB#531685] Transition Work Item To User Acceptance Testing Test'
+
+curl \
+  -X POST \
+  -H "Accept: application/vnd.github.v3+json" \
+  -H "Authorization: token ${TOKEN}" \
+  https://api.github.com/repos/tr/digital_emcm-web/actions/workflows/merge-release-pull-request.yml/dispatches \
+  -d "{ \
+    \"ref\": \"ab-682975-transition-work-item-to-user-acceptance-testing-test\", \
+    \"inputs\": { \
+      \"title\": \"${TITLE}\", \
+      \"ado_token\": \"${ADO_TOKEN}\" \
+    } \
+  }"

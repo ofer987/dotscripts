@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+curl \
+  -X POST \
+  -H "Accept: application/vnd.github.v3+json" \
+  -H "Authorization: token ${TOKEN}" \
+  https://api.github.com/repos/tr/digital_emcm-web/actions/workflows/ci.yml/dispatches \
+  -d "{ \
+    \"ref\": \"feature/csp-32414-Integrate_short_term_solution_for_overriding_Apigee_environment_variable-test\" \
+  }"

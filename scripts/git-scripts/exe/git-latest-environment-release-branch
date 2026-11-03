@@ -1,0 +1,35 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require_relative '../lib/git_scripts'
+
+SEMVER_REGEX = /\d+\.\d+\.(\d+)$/
+RELEASE_BRANCH_REGEX = /^(\d+)\.(\d+)/
+ENVIRONMENT_REGEX = /^dev|qa|uat|ppe|prod$/i
+
+environment_string = ARGV[0].to_s.strip.downcase
+unless environment_string.match? ENVIRONMENT_REGEX
+  puts "Failed to match #{ENVIRONMENT_REGEX}"
+
+  exit 1
+end
+
+version = GitScripts::Environment.latest_environment_version(environment_string)
+
+major, minor = version.match(RELEASE_BRANCH_REGEX)[1..2]
+  .map(&:to_i)
+
+GitScripts::Git.fetch_origin
+
+releases_branch = "releases/#{major}.#{minor}"
+origin_releases_branch = "origin/#{releases_branch}"
+
+result = `git branch --list --remote`
+  .split("\n")
+  .map(&:strip)
+  .select { |item| item.start_with? origin_releases_branch }
+  .map { |item| item.gsub("#{origin_releases_branch}.", '') }
+  .map(&:to_i)
+
+patch = Array(result).max
+puts "#{releases_branch}.#{patch}"

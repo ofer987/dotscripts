@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+set -e
+
+if [[ -z $JFROG_PASSWORD ]]; then
+  echo 'JFROG_PASSWORD was not specified!'
+
+  exit 1
+fi
+
+export AUTHOR_ENVIRONMENTS='localhost'
+export AUTHOR_USERNAMES='admin'
+export AUTHOR_PASSWORDS='admin'
+export JFROG_ENVIRONMENT='qa'
+export JFROG_USERNAME='6065004'
+
+~/work/emcm/emcm-web/.github/external_modules/exe/run

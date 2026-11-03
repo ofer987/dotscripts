@@ -1,0 +1,21 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require_relative '../lib/git_scripts'
+
+begin
+  url = GitScripts::CreatePullRequest.new.execute
+
+  if /darwin/.match? RUBY_PLATFORM
+    `open #{url}`
+    exit 0
+  end
+
+  puts url
+  exit 0
+rescue StandardError => e
+  puts e
+  puts e.backtrace
+
+  exit 1
+end

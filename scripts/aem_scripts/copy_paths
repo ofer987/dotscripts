@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+
+if [[ -z $USERNAME ]]; then
+  echo 'USERNAME has not been specified'
+  exit 1
+fi
+
+if [[ -z $PASSWORD ]]; then
+  echo 'PASSWORD has not been specified'
+  exit 1
+fi
+
+if [[ -z $SOURCE_PATH ]]; then
+  echo 'SOURCE_PATH has not been specified'
+  exit 1
+fi
+
+if [[ -z $DEST_PATH ]]; then
+  echo 'DEST_PATH has not been specified'
+  exit 1
+fi
+
+curl \
+  -u "${USERNAME}:${PASSWORD}" \
+  -F cmd='copyPage' \
+  -F destParentPath="${DEST_PATH}" \
+  -F srcPath="${SOURCE_PATH}" \
+  http://author1useast1-as.prod.ewp.thomsonreuters.com:4502/bin/wcmcommand
+

@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+export REMOTE='tr/digital_emcm-web'
+
+if [[ -z $PAT ]]; then
+  echo 'PAT was not specified'
+
+  exit 1
+fi
+
+~/work/emcm/emcm-web/.github/release_pull_requests/exe/merge_pull_request

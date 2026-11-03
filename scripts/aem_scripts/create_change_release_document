@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+
+export JFROG_ENVIRONMENT='ppe'
+export AUTHOR_ENVIRONMENTS='ppe,prod'
+export AUTHOR_USERNAMES="autotest-admin,autotest-admin"
+export JFROG_USERNAME='6065004'
+
+if [[ -z $RELEASE_FIX_VERSION ]]; then
+  echo 'The RELEASE_FIX_VERSION environment variable was not specified'
+
+  exit 1
+fi
+
+if [[ -z $GITHUB_REF_NAME ]]; then
+  echo 'The GITHUB_REF_NAME environment variable was not specified'
+
+  exit 1
+fi
+
+if [[ -z $AUTHOR_PASSWORDS ]]; then
+  echo 'The AUTHOR_PASSWORDS environment variable was not specified'
+
+  exit 1
+fi
+
+if [[ -z $JFROG_PASSWORD ]]; then
+  echo 'The JFROG_PASSWORD environment variable was not specified'
+
+  exit 1
+fi
+
+./exe/change_release_document $1

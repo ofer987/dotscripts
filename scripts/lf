@@ -1,0 +1,11 @@
+#!/usr/bin/env ruby
+
+def absolute_paths(path)
+  Dir
+    .foreach(path)
+    .reject { |entry| entry == '.' || entry == '..' }
+    .map { |entry| File.expand_path(entry) }
+end
+
+path = ARGV[0] || '.'
+absolute_paths(path).each { |entry| puts entry }

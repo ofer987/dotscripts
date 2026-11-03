@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+set +e;
+
+if [[ -z $DEPLOYMENT_VERSION ]]; then
+  echo 'Specify DEPLOYMENT_VERSION'
+
+  exit 1
+fi
+
+MASTER_BRANCH="origin/releases/${DEPLOYMENT_VERSION}"
+PPE_BRANCH="adobe/release"
+
+NONE_RENDERED_FILES=$(git diff "${MASTER_BRANCH}..${PPE_BRANCH}" --name-only | ag --invert-match '^dispatcher\/render' | ag --invert-match '^\.devcontainer')
+git diff -B "${MASTER_BRANCH}..${PPE_BRANCH}" -- ${NONE_RENDERED_FILES}

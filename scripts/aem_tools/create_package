@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+find . -name "*.jar" -print0 | xargs -0 zip veracode-static-scan.zip
+mkdir zip && cp veracode-static-scan.zip zip

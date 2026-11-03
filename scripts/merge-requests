@@ -1,0 +1,82 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require 'rest-client'
+require 'uri'
+require 'json'
+require 'pry-byebug'
+
+def get_response(uri, headers)
+  response = RestClient.get uri, headers
+
+  case response.code
+  when 200
+    JSON.parse(response.body)
+  else
+    raise "Got a (#{response.code}) status instead of a 200"
+  end
+rescue => exception
+  puts 'Error!'
+  puts exception.message
+  puts exception.backtrace
+end
+
+def get_project_id(fqdn, headers, name)
+  uri = URI("#{fqdn}/api/v4/projects?search=#{name}").to_s
+
+  Array(get_response(uri, headers))
+    .select { |i| i['name'] == name }
+    .map { |i| i['id'] }
+    .first
+end
+
+def get_merge_request_urls(fqdn, headers, project_id, branch)
+  uri = URI("#{fqdn}/api/v4/projects/#{project_id}/merge_requests?state=opened").to_s
+
+  results = Array(get_response(uri, headers))
+    .select { |i| i['source_branch'] == branch.to_s.strip }
+    .map { |i| i['web_url'] }
+end
+
+def get_new_merge_request_url(fqdn, _headers, project_group, project_name, project_id, branch, target_branch)
+  link = "#{fqdn}/#{project_group}/#{project_name}/merge_requests/new?merge_request[source_branch]=#{branch}&merge_request[source_project_id]=#{project_id}&merge_request[target_branch]=#{target_branch}&merge_request[target_project_id]=#{project_id}"
+
+  URI(link).to_s
+end
+
+fqdn = ENV['FQDN'].to_s.strip
+project_group = ENV['REPO_GROUP'].to_s.strip
+project_id = ENV['PROJECT_ID'].to_s.strip
+project_name = ENV['REPO_NAME'].to_s.strip
+branch = ENV['BRANCH'].to_s.strip
+target_branch = ENV['TARGET_BRANCH'].to_s.strip
+access_token = ENV['ACCESS_TOKEN'].to_s.strip
+
+headers = {
+  'PRIVATE-TOKEN' => access_token
+}
+
+if project_id.empty?
+  project_id = get_project_id(fqdn, headers, project_name)
+end
+
+if target_branch.empty?
+  target_branch = 'sprint-dev'
+end
+
+mr_urls = Array(get_merge_request_urls(fqdn, headers, project_id, branch))
+urls = if !mr_urls.empty?
+  mr_urls
+else
+  get_new_merge_request_url(
+    fqdn,
+    headers,
+    project_group,
+    project_name,
+    project_id,
+    branch,
+    target_branch
+  )
+end
+
+puts urls

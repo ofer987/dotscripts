@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+
+if [[ -z ${TOKEN} ]]; then
+  echo 'Missing TOKEN'
+  exit 1
+fi
+
+if [[ -z ${BRANCH} ]]; then
+  echo 'Missing BRANCH'
+  exit 1
+fi
+
+if [[ -z ${WORK_ITEM_ID} ]]; then
+  echo 'Missing WORK_ITEM_ID'
+  exit 1
+fi
+
+curl \
+  -X POST \
+  -H "Accept: application/vnd.github.v3+json" \
+  -H "Authorization: token ${TOKEN}" \
+  https://api.github.com/repos/tr/digital_emcm-web/actions/workflows/create-release-pull-request.yml/dispatches \
+  -d "{ \
+    \"ref\": \"${BRANCH}\", \
+    \"inputs\": { \
+      \"key\": \"AB#${WORK_ITEM_ID}\" \
+    } \
+  }"

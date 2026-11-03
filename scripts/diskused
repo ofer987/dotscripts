@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+set -e;
+
+dir="$1";
+
+if [[ "${dir}" == "" ]]
+then
+    dir=".";
+fi
+
+if [[ "$2" == "--detailed" ]]
+then
+    du "${dir}" | sort --numeric-sort;
+    exit;
+fi
+
+du -hc "${dir}" | tail -1;

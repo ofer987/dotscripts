@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+curl 'https://legal-tr-com-dev-ams.ewp.thomsonreuters.com/en' \
+  --silent \
+  --user '<user-name>:<password>' > /dev/null;
+
+curl 'https://legal-tr-com-dev-ams.ewp.thomsonreuters.com/content/ue/en-us/products/env-config/jcr:content.list.json' \
+  --silent \
+  --user '<user-name>:<password>' > /dev/null;
+
+curl 'https://legal-tr-com-dev-ams.ewp.thomsonreuters.com/en-us/products/practical-law/plans-pricing' \
+  --silent \
+  --user '<user-name>:<password>' > /dev/null;
+
+curl 'https://www-tr-com-ar-dev-ams.ewp.thomsonreuters.com/es/soluciones-fiscales-contables-gestion/biblioteca-de-contenidos.html' \
+  --silent \
+  --user '<user-name>:<password>' > /dev/null;

@@ -1,0 +1,20 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+PACKAGE_REGEX = /^\s*\> ([A-Za-z\.0-9]+)/
+
+all_packages = `dotnet list package`.split("\n")
+  .select { |line| PACKAGE_REGEX.match(line) }
+  .map { |line| PACKAGE_REGEX.match(line)[1] }
+
+all_packages.each do |package|
+  puts "Processing package (#{package})"
+
+  system("dotnet add package #{package}")
+rescue => error
+  puts error.class
+  puts error.message
+  puts error.backtrace
+
+  puts 'Proceeding to next package'
+end

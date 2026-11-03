@@ -1,0 +1,383 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require 'json'
+require 'pry-byebug'
+
+DEFAULT_VERSION = '0.19.0'.freeze
+
+module ModuleFinder
+  def self.find_module(modules, name)
+    name = name.to_s.strip
+    raise 'name cannot be empty' if name.empty?
+
+    Array(modules)
+      .select { |mod| mod['name'] == name.to_s }
+  end
+
+  def self.find_function(modules, name)
+    name = name.to_s.strip || '*'
+    return modules if name == '*'
+
+    Array(modules)
+      .select { |mod| mod['values'].any? { |v| v['name'] == name } }
+      .map { |mod| select_function(mod, name) }
+  end
+
+  private
+
+  def self.select_function(mod, name)
+    mod['values'] = mod['values']
+      .select { |v| v['name'] == name }
+
+    mod
+  end
+end
+
+class Modules
+  attr_reader :internal
+
+  def initialize(internal)
+    self.internal = Array(internal).map { |i| Module.new(i) }
+  end
+
+  def to_json
+    internal.flat_map(&:to_json)
+  end
+
+  def as_json
+    JSON.generate(to_json)
+  end
+
+  private
+
+  attr_writer :internal
+end
+
+class Module
+  attr_reader :internal
+
+  def initialize(internal)
+    self.internal = internal
+  end
+
+  def to_json
+    internal['values'].map do |v|
+      {
+        'name' => v['name'],
+        'fullName' => "#{internal['name']}.#{v['name']}",
+        'href' => '',
+        'signature' => v['type'],
+        'comment' => v['comment']
+      }
+    end
+  end
+
+  private
+
+  attr_writer :internal
+end
+
+def read_packages
+  json = JSON.parse File.read('./elm.json')
+
+ (json['dependencies']['direct'] || {}).merge( json['dependencies']['indirect'] || {} )
+end
+
+def read_documentation(dependencies, version = DEFAULT_VERSION)
+  elm_version = version.to_s.strip
+
+  Array(dependencies)
+    .map { |dep, version| File.join(ENV['HOME'], '.elm', elm_version, 'package', dep, version,  'documentation.json') }
+    .select { |path| File.exist? path }
+    .map { |path| File.read path }
+    .flat_map { |content| JSON.parse content }
+end
+
+def read_all_documentation(version = DEFAULT_VERSION)
+  elm_version = version.to_s.strip
+
+  path = File.join(ENV['HOME'], '.elm', elm_version, 'package', '**',  'documentation.json')
+
+  Dir[path]
+    .map { |path| File.read path }
+    .flat_map { |content| JSON.parse content }
+end
+
+def get_documentation(json, function = '*')
+  Array(json)
+    .map { |item| "Module: #{item['name']}\n\n#{get_includes(item, function)}" }
+    .join("\n")
+end
+
+def get_includes(modul_json, function = '*')
+  Array(modul_json['values'])
+    .map { |value| "Function: #{value['name']}\n\n#{value['type']}\n\n#{value['comment']}" }
+    .join("\n")
+end
+
+class ElmFile
+  attr_reader :path, :content
+
+  def initialize(path)
+    self.path = path
+    self.content = File.read(path)
+  end
+
+  def imports
+    @imports ||= content
+      .split("\n")
+      .select { |line| /^import \S.*/.match? line }
+      .map { |line| Import.create(line) }
+  end
+
+  def imported_module_names
+    @imported_module_names ||= imports.map(&:name)
+  end
+
+  def imported_modules(documentation, module_name, function_name)
+    imported_all_includes(documentation, module_name, function_name)
+      .merge(imported_some_includes(documentation, module_name, function_name))
+  end
+
+  def imported_all_includes(documentation, module_name, function_name)
+    module_name = module_name.to_s.strip
+    function_name = function_name.to_s.strip
+
+    module_names = imports
+      .select { |import| (module_name.empty? || import.name == module_name) && import.includes == '*' }
+      .map(&:name)
+
+    module_names.each_with_object({}) do |name, result|
+      result[name] = ModuleFinder
+        .find_module(documentation, name) 
+        .flat_map { |mod| mod['values'] }
+        .flat_map { |value| value['name'] }
+        .select { |name| function_name.empty? || name.downcase.start_with?(function_name.downcase) }
+    end
+  end
+
+  def imported_some_includes(documentation, module_name, function_name)
+    module_name = module_name.to_s.strip
+    function_name = function_name.to_s.strip
+
+    imports
+      .select { |import| (module_name.empty? || import.name == module_name) && import.includes != '*' }
+      .map { |mod| [mod.name, mod.includes.map(&:to_s).select { |inc| function_name.empty? || inc.downcase.start_with?(function_name.downcase) }] }
+      .to_h
+  end
+
+  private 
+
+  attr_writer :path, :content
+end
+
+class Import
+  attr_reader :line
+
+  IMPORT_ALL_REGEX = /^import (\S+)$/
+  IMPORT_SOME_REGEX = /^import (\S+) exposing \((.+)\)$/
+
+  def self.create(line)
+    line = line.to_s.strip
+
+    if IMPORT_ALL_REGEX.match? line
+      ImportAll.new(line)
+    elsif IMPORT_SOME_REGEX.match? line
+      ImportSome.new(line)
+    else
+      raise "The line (#{line}) is not an import"
+    end
+  end
+
+  def includes
+    raise 'Not defined in abstract class (Import)'
+  end
+
+  def to_s
+    Array(includes)
+      .map { |inc| "#{name}.#{inc}" }
+      .join("\n")
+  end
+
+  private
+
+  attr_writer :line
+end
+
+class ImportAll < Import
+  attr_reader :name
+
+  def initialize(line)
+    self.name = IMPORT_ALL_REGEX.match(line.to_s.strip).to_a[1]
+  end
+
+  def includes
+    '*'
+  end
+
+  private
+
+  attr_writer :name
+end
+
+class ImportSome < Import
+  attr_reader :name, :includes
+
+  def initialize(line)
+    self.name, includes_str = *IMPORT_SOME_REGEX.match(line.to_s.strip).to_a[1..-1]
+
+    self.includes = get_includes(includes_str)
+  end
+
+  private
+
+  def get_includes(str)
+    str
+      .split(',')
+      .map(&:strip)
+      .reject { |name| name == '..' }
+      .map { |item| SubImport.create(item) }
+  end
+
+  attr_writer :name, :includes
+end
+
+class SubImport
+  attr_reader :str
+
+  def self.create(str)
+    first_character_ascii_value = str.each_byte.first
+
+    if first_character_ascii_value >= 97 && first_character_ascii_value <= 122
+      SubImportFunction.new(str)
+    elsif first_character_ascii_value >= 65 && first_character_ascii_value <= 90
+      SubImportType.new(str)
+    else
+      raise "The item (#{str}) is not a valid import item"
+    end
+  end
+
+  def initialize(*args)
+    raise 'Canot initialize abstract class'
+  end
+
+  alias to_s str
+
+  private
+
+  attr_writer :str
+end
+
+class SubImportFunction < SubImport
+  def initialize(str)
+    self.str = str
+  end
+
+  def function?
+    true
+  end
+
+  def type?
+    false
+  end
+end
+
+class SubImportType < SubImport
+  def initialize(str)
+    self.str = str
+  end
+
+  def function?
+    false
+  end
+
+  def type?
+    true
+  end
+end
+
+def parse_file(path)
+  File.readlines(path)
+    .select { |line| /^import (.*)$/ }
+end
+
+class Query
+  attr_reader :full_name
+
+  def initialize(full_name)
+    self.full_name = full_name.to_s.strip
+  end
+
+  # What if it is a function_name?
+  def module_name
+    return @module_name if defined? @module_name
+
+    if sub_names.size == 0
+      @module_name = ''
+    elsif sub_names.size == 1 && full_name.end_with?('.')
+      @module_name = sub_names[0]
+    elsif sub_names.size == 1
+      @module_name = ''
+    else
+      @module_name = sub_names[0..-2].join('.')
+    end
+  end
+
+  # Change to a different name
+  # What if type?
+  # What if last one is a submodule?
+  def function_name
+    return @function_name if defined? @function_name
+
+    if sub_names.size == 0
+      @function_name = ''
+    elsif sub_names.size == 1 && full_name.end_with?('.')
+      @function_name = ''
+    elsif sub_names.size == 1
+      @function_name = sub_names[0]
+    else
+      @function_name = sub_names[-1]
+    end
+  end
+
+  private
+
+  def sub_names
+    @sub_names ||= full_name.split('.')
+  end
+
+  attr_writer :full_name
+end
+
+path = ARGV[0]
+query = Query.new(ARGV[1])
+
+documentation =
+  if File.exist?('./elm.json')
+    read_documentation(read_packages)
+  else
+    read_all_documentation
+  end
+
+specified_elm_file = ElmFile.new(path)
+
+modules = specified_elm_file.imported_modules(
+  documentation,
+  query.module_name,
+  query.function_name
+)
+
+results = modules.flat_map do |(name, includes)|
+  includes.map do |inc|
+    {
+      name: inc,
+      fullName: "#{name}.#{inc}",
+      href: '',
+      signature: '',
+      comment: ''
+    }
+  end
+end
+
+puts JSON.generate(results)

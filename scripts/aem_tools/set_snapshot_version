@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+# Expected environment variables
+# RELEASE_VERSION
+
+if [[ -z $RELEASE_VERSION ]]; then
+  echo 'RELEASE_VERSION is not set';
+
+  exit 1
+fi
+
+# Change the revision version
+mvn versions:set-property \
+    -Dproperty=revision \
+    -DnewVersion="$RELEASE_VERSION-SNAPSHOT"

@@ -1,0 +1,24 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+def strip_whitespace(filepath)
+  content = IO.read(filepath).to_s
+
+  begin
+    content = content.gsub(/\r/, '')
+  rescue ArgumentError => e
+    puts "The file #{filepath}: #{e}"
+  end
+
+  IO.write(filepath, content)
+rescue IOError => e
+  puts "The file #{filepath}: #{e}"
+end
+
+filepaths = `git ls-files`
+  .split("\n")
+  .select { |item| item.match(/\.cs$/) }
+
+filepaths.each do |item|
+  strip_whitespace(item)
+end

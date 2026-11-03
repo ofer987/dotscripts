@@ -1,0 +1,33 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require 'active_support'
+require 'active_support/core_ext'
+
+VARIABLE_LOCATION = File.join('dispatcher', 'src', 'conf.d', 'variables').freeze
+VHOST_LOCATION = File.join('dispatcher', 'src', 'conf.d', 'enabled_vhosts').freeze
+
+variables = Dir.entries(VHOST_LOCATION)
+  .map { |item| File.join(VHOST_LOCATION, item) }
+  .select { |item| File.stat(item).file? }
+  .flat_map do |item|
+    File.readlines(item)
+      .select { |line| line =~ /\{(.+WHITE_DOMAIN)}/ }
+      .map { |line| line.match(/\{(.+WHITE_DOMAIN)\}/)[1] }
+  end.reject(&:blank?).uniq
+
+websites = Dir.entries(VARIABLE_LOCATION)
+  .map { |item| File.join(VARIABLE_LOCATION, item) }
+  .select { |item| File.stat(item).file? }
+  .flat_map do |item|
+    File.readlines(item)
+      .flat_map do |line|
+        variables
+          .select { |var| line =~ /^define #{var} (.+)$/i }
+          .map { |var| line.match(/define #{var} (.+)$/i)[1] }
+      end
+  end.reject(&:blank?).uniq
+
+puts websites
+  .map { |item| "https://#{item}" }
+  .join("\n")

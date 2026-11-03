@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+if [[ -z $PACKAGE ]]; then
+  echo "PACKAGE is not defined!"
+  exit 1
+fi
+
+if [[ -z $PASSWORD ]]; then
+  echo "PASSWORD is not defined!"
+  exit 1
+fi
+
+USERNAME="autotest-admin"
+ORIGIN="http://publish1useast1-as.ppe.ewp.thomsonreuters.com:4503"
+
+curl -u "${USERNAME}:${PASSWORD}" "${ORIGIN}/etc/packages/com.tr/${PACKAGE}.zip" --output ${PACKAGE}.zip;
+unzip -o ${PACKAGE}.zip -d ${PACKAGE};

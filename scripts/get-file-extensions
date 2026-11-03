@@ -1,0 +1,8 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+puts Dir['**/*.*']
+  .map { |name| name.split('.') }
+  .select { |name| name.size > 1 }
+  .map { |name| name[-1] }
+  .uniq

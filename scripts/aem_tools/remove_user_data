@@ -1,0 +1,24 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+REGEX = /cq:last.*$/
+
+def modify_file(path)
+  return unless File.file? path
+
+  lines = IO.readlines(path)
+
+  result = lines
+    .map(&:chomp)
+    .reject { |line| REGEX.match? line }
+    .join("\n")
+
+  IO.write(path, result)
+end
+
+files = Dir.glob(ARGV[0]).entries
+
+require 'pry-byebug'
+binding.pry
+
+files.each { |path| modify_file(path) }

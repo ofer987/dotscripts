@@ -1,0 +1,35 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require 'json'
+
+class Format
+  attr_reader :json
+
+  def initialize(query)
+    self.json = JSON.parse(`elm oracle Init.elm #{query.to_s.strip}`)
+  end
+
+  def function(item)
+    <<~FORMAT
+      #{item['name']} : #{item['signature']}
+
+      #{item["comment"]}
+    FORMAT
+  end
+
+  def library
+    @library ||= self.json
+      .map { |item| function(item) }
+      .join("\n\n---------------------\n")
+  end
+  alias to_s library
+
+  private
+
+  attr_writer :json
+end
+
+puts Format.new(ARGV[0]).to_s
+
+

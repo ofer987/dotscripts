@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+mvn versions:set-property \
+    -Dproperty=revision \
+    -DnewVersion="$RELEASE_VERSION"

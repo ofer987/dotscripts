@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+
+set -e;
+
+user="admin"
+password="admin"
+group="com.tr.ue"
+package="ue.ui.content-4.68.0-SNAPSHOT.zip"
+
+cd ue/ui.content/src/main/content || exit;
+
+zip -r ${package} ./*;
+curl -u "${user}:${password}" -F cmd=upload -F force=true -F package="@${package}" http://localhost:4502/crx/packmgr/service/.json
+curl -u "${user}:${password}" -F cmd=install "http://localhost:4502/crx/packmgr/service/.json/etc/packages/${group}/${package}"

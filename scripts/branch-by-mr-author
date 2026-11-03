@@ -1,0 +1,52 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require 'rest-client'
+require 'uri'
+require 'json'
+
+def response(uri, headers)
+  response = RestClient.get uri, headers
+
+  case response.code
+  when 200
+    JSON.parse(response.body)
+  else
+    raise "Got a (#{response.code}) status instead of a 200"
+  end
+rescue => exception
+  puts 'Error!'
+  puts exception.message
+  puts exception.backtrace
+end
+
+def project_id(fqdn, headers, name)
+  uri = URI("#{fqdn}/api/v4/projects?search=#{name}").to_s
+
+  results = response(uri, headers)
+  results
+    .select { |i| i['name'] == name }
+    .map { |i| i['id'] }
+    .first
+end
+
+def merge_request_urls(fqdn, headers, project_id, author)
+  uri = URI("#{fqdn}/api/v4/projects/#{project_id}/merge_requests?state=opened").to_s
+
+  results = response(uri, headers)
+    .select { |i| !(i['author']['name'] =~ /#{author}/i).nil? || !(i['author']['username'] =~ /#{author}/i).nil? }
+    .sort_by { |i| DateTime.strptime(i['created_at'], '%Y-%m-%dT%H:%M:%S') }
+    .map { |i| i['source_branch'] }
+    .reverse
+end
+
+fqdn = ENV['FQDN'].to_s.strip
+repo_name = ENV['REPO_NAME'].to_s.strip
+author = ARGV[0]
+access_token = ENV['ACCESS_TOKEN'].to_s.strip
+
+headers = {
+  'PRIVATE-TOKEN' => access_token
+}
+id = project_id(fqdn, headers, 'emcm-web')
+puts merge_request_urls(fqdn, headers, id, author)

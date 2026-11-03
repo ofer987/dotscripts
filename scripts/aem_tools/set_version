@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+
+# First argument: RELEASE_VERSION
+
+if [[ -z $RELEASE_VERSION ]]; then
+  echo 'RELEASE_VERSION is not set';
+
+  exit 1
+fi
+
+# Change the revision version
+mvn versions:set-property \
+    -Dproperty=revision \
+    -DnewVersion="$RELEASE_VERSION"
+
+# AMS requires us to update the <version> tags
+# Otherwise the version number does not show up correctly in PPE and in Production
+# (Go figure!? :p)
+mvn versions:set \
+    -DgroupId=* \
+    -DartifactId=* \
+    -DoldVersion=* \
+    -DnewVersion="$RELEASE_VERSION"

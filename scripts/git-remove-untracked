@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+echo "Are you sure? [Y/n]";
+read -r answer
+
+if [[ "${answer,,}" == 'y' || "${answer}" == '' ]]
+then
+  untracked_files=$(git ls-files -o --exclude-standard);
+
+  rm -rf "$untracked_files";
+fi

@@ -1,0 +1,21 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require 'open3'
+
+PREVIOUS_RELEASE = ARGV[0]
+CURRENT_RELEASE = ARGV[1]
+
+REGEX = /(\w+-\d+)/
+
+lines, _status = Open3
+  .capture2("git log --merges --oneline #{PREVIOUS_RELEASE}..#{CURRENT_RELEASE}")
+lines = lines.split("\n")
+
+tickets = lines
+  .select { |line| REGEX.match? line }
+  .map { |line| REGEX.match(line)[1] }
+  .map(&:upcase)
+  .uniq
+
+puts tickets

@@ -1,0 +1,32 @@
+<application>
+  <component name="VSTSSettings">
+    <option name="serverContexts">
+      <array>
+        <ServerContextState>
+          <option name="type" value="VSO" />
+          <option name="uri" value="https://dev.azure.com/tr-tax-default" />
+          <option name="serverUri" value="https://dev.azure.com/tr-tax-default" />
+          <option name="userId" value="8a0f61e2-2165-65e7-bd84-49c77123679d" />
+          <option name="teamProjectCollectionReference" value="{&quot;id&quot;:&quot;ac09c845-4fa1-4296-9576-23cce3a5995d&quot;,&quot;name&quot;:&quot;tr-tax-default&quot;,&quot;url&quot;:&quot;https://dev.azure.com/tr-tax-default/_apis/projectCollections/ac09c845-4fa1-4296-9576-23cce3a5995d&quot;}" />
+          <option name="teamProjectReference" value="{&quot;abbreviation&quot;:null,&quot;description&quot;:null,&quot;id&quot;:&quot;8decbbf7-fed7-4beb-b877-46fb82733039&quot;,&quot;name&quot;:&quot;WebMarketing&quot;,&quot;revision&quot;:91374497,&quot;state&quot;:&quot;WELL_FORMED&quot;,&quot;url&quot;:&quot;https://dev.azure.com/tr-tax-default/_apis/projects/8decbbf7-fed7-4beb-b877-46fb82733039&quot;}" />
+        </ServerContextState>
+      </array>
+    </option>
+    <option name="properties">
+      <array>
+        <PropertyState>
+          <option name="name" value="tfHome" />
+          <option name="value" value="$USER_HOME$/Downloads/tee/TEE-CLC-14.114.0/tf" />
+        </PropertyState>
+        <PropertyState>
+          <option name="name" value="tfvcUseReactiveClient" />
+          <option name="value" value="true" />
+        </PropertyState>
+        <PropertyState>
+          <option name="name" value="repoRoot" />
+          <option name="value" value="$USER_HOME$/work/" />
+        </PropertyState>
+      </array>
+    </option>
+  </component>
+</application>

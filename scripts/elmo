@@ -1,0 +1,154 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require 'json'
+require 'pry-byebug'
+
+DEFAULT_VERSION = '0.19.0'.freeze
+
+module ModuleFinder
+  def self.find_module(modules, name)
+    name = name.to_s.strip
+    raise 'name cannot be blank' if name.empty?
+
+    Array(modules)
+      .select { |mod| mod['name'] == name.to_s }
+  end
+
+  def self.find_function(modules, name)
+    name = name.to_s.strip || '*'
+    return modules if name == '*'
+
+    Array(modules)
+      .select { |mod| mod['values'].any? { |v| v['name'] == name } }
+      .map { |mod| select_function(mod, name) }
+  end
+
+  private
+
+  def self.select_function(mod, name)
+    mod['values'] = mod['values']
+      .select { |v| v['name'] == name }
+
+    mod
+  end
+end
+
+class Modules
+  attr_reader :internal
+
+  def initialize(internal)
+    self.internal = Array(internal).map { |i| Module.new(i) }
+  end
+
+  def to_json
+    internal.flat_map(&:to_json)
+  end
+
+  def as_json
+    JSON.generate(to_json)
+  end
+
+  private
+
+  attr_writer :internal
+end
+
+class Module
+  attr_reader :internal
+
+  def initialize(internal)
+    self.internal = internal
+  end
+
+  def to_json
+    internal['values'].map do |v|
+      {
+        'name' => v['name'],
+        'fullName' => "#{internal['name']}.#{v['name']}",
+        'href' => '',
+        'signature' => v['type'],
+        'comment' => v['comment']
+      }
+    end
+  end
+
+  private
+
+  attr_writer :internal
+end
+
+def read_packages
+  json = JSON.parse File.read('./elm.json')
+
+ (json['dependencies']['direct'] || {}).merge( json['dependencies']['indirect'] || {} )
+end
+
+def read_documentation(dependencies, version = DEFAULT_VERSION)
+  elm_version = version.to_s.strip
+
+  Array(dependencies)
+    .map { |dep, version| File.join(ENV['HOME'], '.elm', elm_version, 'package', dep, version,  'documentation.json') }
+    .select { |path| File.exist? path }
+    .map { |path| File.read path }
+    .flat_map { |content| JSON.parse content }
+end
+
+def read_all_documentation(version = DEFAULT_VERSION)
+  elm_version = version.to_s.strip
+
+  path = File.join(ENV['HOME'], '.elm', elm_version, 'package', '**',  'documentation.json')
+
+  Dir[path]
+    .map { |path| File.read path }
+    .flat_map { |content| JSON.parse content }
+end
+
+def get_documentation(json, function = '*')
+  Array(json)
+    .map { |item| "Module: #{item['name']}\n\n#{get_functions(item, function)}" }
+    .join("\n")
+end
+
+def get_functions(modul_json, function = '*')
+  Array(modul_json['values'])
+    .map { |value| "Function: #{value['name']}\n\n#{value['type']}\n\n#{value['comment']}" }
+    .join("\n")
+end
+
+_, modul, function = */(\S+)\.(\S+)/.match(ARGV[1])
+modul = modul.to_s.strip
+function = function.to_s.strip
+
+if modul.empty? && function.empty?
+  modul = ARGV[1].to_s.strip
+  function = '*'
+elsif modul.empty?
+  raise 'please input Module.function' if modul.empty? && function.empty?
+end
+# modul = ARGV[0].to_s.strip
+# function = ARGV[1].to_s.strip || '*'
+
+json = if File.exist?('./elm.json')
+         read_documentation(read_packages)
+       else
+         read_all_documentation
+       end
+
+modules = ModuleFinder.find_module(json, modul)
+modules = ModuleFinder.find_function(modules, function)
+
+# puts get_documentation(modules)
+
+puts Modules.new(modules).as_json
+
+
+# if !function.empty?
+#   json = json
+#     .flat_map { |item| item['values'] }
+#     .select { |value| value['name'] == function }
+# end
+
+# binding.pry
+# puts get_documentation(json, function)
+# puts get_documentation_json(json, function)

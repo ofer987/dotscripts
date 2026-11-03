@@ -1,0 +1,16 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+paths = if ARGV.size.positive?
+  ARGV
+else
+  `git diff --cached --name-only HEAD | ag '(\.jsx?|\.tsx?)$'`.split("\n")
+end
+
+changed_files = paths.each_with_object({}) do |path, result|
+  content = `yarn prettier #{path}`.split("\n")[2..-2].join("\n")
+
+  result[path] = "#{content}\n"
+end
+
+changed_files.each_key { |path| IO.write(path, changed_files[path]) }

@@ -1,0 +1,7 @@
+#!/usr/bin/env fish
+
+for file in (find **/configuration/**/*.mustache)
+  set without_mustache (string replace ".mustache" "" $file)
+
+  mv $file $without_mustache
+end

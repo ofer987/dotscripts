@@ -1,0 +1,168 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require 'active_support'
+require 'rest-client'
+require 'base64'
+
+ORIGINS = {
+  qa: {
+    name: 'qa',
+    url: 'https://author-qa-ams.ewp.thomsonreuters.com'
+  },
+  uat: {
+    name: 'uat',
+    url: 'https://author-uat-ams.ewp.thomsonreuters.com'
+  },
+  ppe: {
+    name: 'ppe',
+    url: 'https://author-ppe-ams.ewp.thomsonreuters.com'
+  },
+  prod: {
+    name: 'prod',
+    url: 'https://author-prod-ams.ewp.thomsonreuters.com'
+  }
+}
+# QA_ORIGIN = 'https://author-qa-ams.ewp.thomsonreuters.com'
+# UAT_ORIGIN = 'https://author-uat-ams.ewp.thomsonreuters.com'
+# PPE_ORIGIN = 'https://author-ppe-ams.ewp.thomsonreuters.com'
+# PROD_ORIGIN = 'https://author-prod-ams.ewp.thomsonreuters.com'
+
+PACKAGE = 'packages_for_dan/eloqua-forms-1.2.0.zip'
+PACKAGE_JCR_PATH = "/etc/packages/#{PACKAGE}".freeze
+
+USERNAME = ENV['USERNAME']
+PASSWORD = ENV['PASSWORD']
+
+if USERNAME.blank?
+  puts 'USERNAME is not specified'
+
+  exit 1
+end
+
+if PASSWORD.blank?
+  puts 'PASSWORD is not specified'
+
+  exit 1
+end
+
+class PackageManager
+  attr_reader :username, password
+
+  def initialize(username, password)
+    @username = username.to_s.strip
+    @password = password.to_s.strip
+  end
+
+  def copy_to_test_forms(source_jcr_path, dest_path)
+    payload = {
+      'destParentPath' => parent_path(dest_path),
+      'srcPath' => source_jcr_path
+    }
+    headers = {
+      'Authorization' => "Basic #{credentials}"
+    }
+
+    begin
+      RestClient.post url, payload, headers
+    rescue StandardError => e
+      puts e.class
+      puts "Problem making a request to a url (#{url})"
+    end
+  end
+
+
+  def rebuild_package
+    url = 'http://localhost:4502/crx/packmgr/service/.json'
+    jcr_path = '/etc/packages/packages_for_dan/eloqua_test_forms.zip?cmd=build'
+    `curl -X POST http://localhost:4502/crx/packmgr/service/.json/etc/packages/mycontent.zip?cmd=build`
+
+    headers = {
+      'Authorization' => "Basic #{credentials}"
+    }
+
+    begin
+      RestClient.post url, payload, headers
+    rescue StandardError => e
+      puts e.class
+      puts "Problem making a request to a url (#{url})"
+    end
+  end
+
+  def download_package(environment)
+    # env = ORIGINS[environment.downcase].name
+    origin = ORIGINS[environment.downcase].url
+
+    url = "#{origin}/crx/packmgr/service/.json#{PACKAGE_JCR_PATH}?cmd=build"
+    # url = 'http://localhost:4502/crx/packmgr/service/.json'
+    `curl -X POST http://localhost:4502/crx/packmgr/service/.json/etc/packages/mycontent.zip?cmd=build`
+
+    headers = {
+      'Authorization' => "Basic #{credentials}"
+    }
+    payload = {}
+
+    begin
+      RestClient.post url, payload, headers
+    rescue StandardError => e
+      puts e.class
+      puts "Failed to download #{PACKAGE_JCR_PATH} from #{url}"
+    end
+  end
+
+  def upload_package(environment)
+    env = ORIGINS[environment.downcase].name
+    origin = ORIGINS[environment.downcase].url
+    url = "#{origin[:url]}/crx/packmgr/service/.json"
+    headers = {
+      'Authorization' => "Basic #{credentials}"
+    }
+    payload = {
+      'cmd' => 'upload',
+      'force' => 'true',
+      'package' => "@#{PACKAGE}"
+    }
+
+    begin
+      response = RestClient.post url, payload, headers
+
+      raise 'failed to upload package' unless response.code == 200
+    rescue StandardError => e
+      puts e.class
+      puts "Problem uploading #{PACKAGE} to #{env} at #{url}"
+    end
+  end
+
+  def replicate_package
+    # `curl -u <user>:<password> -X POST http://localhost:4502/crx/packmgr/service/.json/etc/packages/my_packages/test.zip?cmd=replicate`
+
+    env = ORIGINS[environment.downcase].name
+    origin = ORIGINS[environment.downcase].url
+    url = "#{origin[:url]}/crx/packmgr/service/.json#{PACKAGE_JCR_PATH}?cmd=replicate"
+    headers = {
+      'Authorization' => "Basic #{credentials}"
+    }
+    payload = {}
+
+    begin
+      response = RestClient.post url, payload, headers
+
+      raise 'failed to replicate package' unless response.code == 200
+    rescue StandardError => e
+      puts e.class
+      puts "Failed to replicate #{PACKAGE} in #{env} to Publishers at #{url}"
+    end
+  end
+
+  private
+
+  def parent_path(jcr_path)
+    jcr_path.split('/')[..-2].join('/')
+  end
+
+  def credentials
+    @credentials ||= Base64.encode64("#{USERNAME}:#{PASSWORD}")
+  end
+end
+
+forms_csv_path = ARGV[0]

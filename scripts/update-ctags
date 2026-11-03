@@ -1,0 +1,45 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Update the projects' ctags file
+class Ctags
+  attr_reader :selected_languages
+
+  DEFAULT_LANGUAGES = ['ruby'].freeze
+
+  def initialize(selected_languages)
+    self.selected_languages = Array(selected_languages)
+      .map(&:to_s)
+      .map(&:strip)
+      .uniq
+  end
+
+  def update(paths)
+    paths = Array(paths)
+      .map(&:to_s)
+      .map(&:strip)
+      .join(' ')
+
+    `ctags -R --languages="#{languages.join(' ')}" --exclude=.git --exclude=log #{paths}`
+  end
+
+  private
+
+  def languages
+    (!selected_languages.empty? && selected_languages) || DEFAULT_LANGUAGES
+  end
+
+  attr_writer :selected_languages
+end
+
+def gem_paths
+  ((File.exist?('Gemfile') && `bundle list --paths`) || '').split("\n")
+end
+
+def local_paths
+  ['.']
+end
+
+Ctags
+  .new(ARGV)
+  .update(gem_paths + local_paths)

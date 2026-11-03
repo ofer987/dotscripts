@@ -1,0 +1,188 @@
+# set your user tokens as environment variables, such as ~/.secrets
+# See the README for examples.
+[init]
+  defaultBranch = master
+[checkout]
+  defaultRemote = origin
+[color]
+  ui = true
+[color "branch"]
+  current = yellow reverse
+  local = yellow
+  remote = green
+[color "diff"]
+  meta = yellow bold
+  frag = magenta bold
+  old = red
+  new = green
+[alias]
+  # Add
+  a = add                           # add
+  chunkyadd = add --patch           # stage commits chunk by chunk
+  patch = add --patch               # stage commits chunk by chunk
+
+  # Files
+  untracked = ls-files -o --exclude-standard
+
+  # Via http://blog.apiaxle.com/post/handy-git-tips-to-stop-you-getting-fired/
+  snapshot = !git stash save "snapshot: $(date)" && git stash apply "stash@{0}"
+  snapshots = !git stash list --grep snapshot
+
+  # Via http://stackoverflow.com/questions/5188320/how-can-i-get-a-list-of-git-branches-ordered-by-most-recent-commit
+  recent-branches = !git for-each-ref --count=15 --sort=-committerdate refs/heads/ --format='%(refname:short)'
+
+  # Branch
+  b = branch -v                                             # branch (verbose)
+  branch-name = rev-parse --abbrev-ref HEAD                 # branch name
+  copy-branch-name = !git branch-name | tr -d '\n' | pbcopy # Copy the branch name
+  bname = rev-parse --abbrev-ref HEAD                       # branch name
+
+  # Commit
+  c = commit -m                                             # commit with message
+  ca = commit -am                                           # commit all with message
+  ci = commit                                               # commit
+  amend = commit --amend                                    # amend your last commit
+  ammend = commit --amend                                   # amend your last commit
+
+  # Checkout
+  co = checkout                                             # checkout
+  nb = checkout -b                                          # create and switch to a new branch (mnemonic: "git new branch branchname...")
+
+  # Cherry-pick
+  cp = cherry-pick -x                                       # grab a change from a branch
+
+  # Diff
+  d = diff                                                  # diff unstaged changes
+  dd = diff -w -b --ignore-blank-lines                      # diff without whitespace
+  dc = dd --cached                                          # diff staged changes
+  cached = dc                                               # diff staged changes
+  last = diff HEAD^                                         # diff last committed change
+  names = !git diff HEAD^..HEAD --name-only | uniq          # list of changed files in the latest commit
+  dnames = !git diff --name-only | uniq                     # list of unstaged changed files
+  dfiles = !sh -c 'git diff --name-only $1 | uniq' -        # list of unstaged changed files
+  cnames = !git diff --name-only --cached | uniq            # list of staged changed files
+
+  # log
+  l = log --graph
+  ls = log --graph --stat --name-only
+  lp = log --graph --patch --stat
+  changes = log --pretty=format:\"%h %cr %cn %Cgreen%s%Creset\" --name-status
+  short = log --pretty=format:\"%h %cr %cn %Cgreen%s%Creset\"
+  simple = log --pretty=format:\" * %s\"
+  shortnocolor = log --pretty=format:\"%h %cr %cn %s\"
+  title = show --format='%s%n%n%b' --no-patch
+
+  # Pull
+  pl = pull                     # pull
+  pulls = pull-requests
+
+  # Push
+  ps = push                     # push
+  force-push = push --force     # force push
+
+  # Rebase
+  rc = rebase --continue        # continue rebase
+  rs = rebase --skip            # skip rebase
+
+  # Remote
+  r = remote -v                 # show remotes (verbose)
+
+  # Reset
+  unstage = reset HEAD          # remove files from index (tracking)
+  uncommit = reset --soft HEAD^ # go back before last commit, with files in uncommitted state
+  filelog = log -u              # show changes to a file
+  mt = mergetool                # fire up the merge tool
+
+  # Stash
+  ss = stash                    # stash changes
+  sl = stash list               # list stashes
+  sa = stash apply              # apply stash (restore changes)
+  sd = stash drop               # drop stashes (destory changes)
+
+  # Status
+  s = status                    # status
+  st = status                   # status
+  stat = status                 # status
+  root = rev-parse --show-toplevel
+
+  # Tags
+  t = tag -n                    # show tags with <n> lines of each tag message
+
+  # svn helpers
+  svnr = svn rebase
+  svnd = svn dcommit
+  svnl = svn log --oneline --show-commit
+
+  # Better Blaming
+  condemn = blame
+  recent-branches = for-each-ref --count=10 --sort=-committerdate refs/heads/ --format="%(refname:short)"
+
+  copy-repo = "!fuck() { git repo ${1} | tr -d '\n' | pbcopy; }; fuck"
+  open-repo = "!fuck() { git repo ${1} | xargs open; }; fuck"
+
+  url = repo
+  copy-url = "!fuck() { git repo ${1} | tr -d '\n' | pbcopy; }; fuck"
+  open-url = "!fuck() { git repo ${1} | xargs open; }; fuck"
+  open-actions-url = "!fuck() { git actions-url ${1} | xargs open; }; fuck"
+
+  open-jira-issue = !git jira-issue | xargs open
+  open-jira = !git jira-issue | xargs open
+  open-issue = !git issue | xargs open
+
+  open-pull-requests = !open $(git pull-requests)
+  open-prs = open-pull-requests
+  open-my-pull-requests = !open $(git my-pull-requests)
+  open-my-prs = open-my-pull-requests
+
+  copy-file-url = "!fuck() { git file-url ${1} | tr -d '\n' | pbcopy; }; fuck"
+  open-file-url = "!fuck() { git file-url ${1} | xargs open; }; fuck"
+
+  find-merge = "!sh -c 'commit=$0 && branch=${1:-HEAD} && (git rev-list $commit..$branch --ancestry-path | cat -n; git rev-list $commit..$branch --first-parent | cat -n) | sort -k2 -s | uniq -f1 -d | sort -n | tail -1 | cut -f2'"
+  show-merge = "!sh -c 'merge=$(git find-merge $0 $1) && [ -n \"$merge\" ] && git show $merge'"
+[mergetool]
+  prompt = false
+[mergetool "mvimdiff"]
+  cmd="mvim -c 'Gdiff' $MERGED"     # use fugitive.vim for 3-way merge
+  keepbackup=false
+[merge]
+  summary = true
+  verbosity = 1
+  tool = mvimdiff
+[apply]
+  whitespace = nowarn
+[branch]
+  autosetupmerge = true
+[push]
+  # 'git push' will push the current branch to its tracking branch
+  # the usual default is to push all branches
+  default = upstream
+[core]
+  autocrlf = false
+  editor = nvim
+  excludesfile = ~/.yadr/git/gitignore
+[advice]
+  statusHints = false
+[diff]
+  # Git diff will use (i)ndex, (w)ork tree, (c)ommit and (o)bject
+  # instead of a/b/c/d as prefixes for patches
+  mnemonicprefix = true
+  algorithm = patience
+[rerere]
+  # Remember my merges
+  # http://gitfu.wordpress.com/2008/04/20/git-rerere-rereremember-what-you-did-last-time/
+  enabled = true
+[include]
+  path = .gitconfig.user
+[credential]
+  helper = osxkeychain
+[log]
+  date = local
+[user]
+  name = Dan Jakob Ofer
+  email = dan@ofer.to
+  username = ofer987
+  signingkey = 30CBDE6CA752170F
+[commit]
+  gpgsign = true
+[tag]
+  gpgSign = true

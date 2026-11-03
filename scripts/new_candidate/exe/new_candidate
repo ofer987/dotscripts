@@ -1,0 +1,44 @@
+#!/usr/bin/env ruby
+# frozen_string_literal
+
+require_relative '../lib/new_candidate'
+
+class NewCandidateExe < Thor
+  option :role, type: :string, required: true
+  option :date, type: :string, required: true
+  option :time, type: :string, required: true
+  option :hacker_rank_url, type: :string, required: true
+  option :wd5_url, type: :string, required: true
+  option :additional_interviewers, type: :string
+  option :team, type: :string, default: 'Digital'
+  option :resume, type: :string
+  option :feedback_form, type: string, default: 'first_last_technology_interview_feedback_template_2020.docx'
+  desc 'Create a directory for a new candidate',
+    'Create a directory for a new candidate. Warning this will rewrite the notes, the feedback, and the resume (if specified)'
+  def create(name)
+    notes = Notes.new(
+        name,
+        options[:role],
+        options[:date],
+        options[:time],
+        options[:hacker_rank_url],
+        options[:wd5_url],
+        options[:additional_interviewers],
+        options[:team]
+    )
+
+    notes.mkdir
+    notes.create
+
+    feedback = Feedback.new(name, options[:feedback_form])
+    feedback.copy
+
+    if (options.has_key? :resume)
+      resume = Resume.new(name, options[:resume])
+      resume.copy
+      resume.delete
+    end
+  end
+end
+
+NewCandidateExe.start(ARGV)

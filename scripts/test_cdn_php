@@ -1,0 +1,144 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require 'active_support'
+require 'active_support/core_ext'
+require 'base64'
+require 'rest-client'
+
+USERNAME = ENV['USERNAME']
+PASSWORD = ENV['PASSWORD']
+ORIGIN = ENV['ORIGIN']
+
+PATHS = %w[
+  hello.env.html
+  hello.env.
+  hello.env.dev/yo
+  hello.env.dev/yo.html
+  .webmail
+  .webmail/
+  webmail
+  webmail/
+  webmail.
+  webmail.html
+  webmail.html/
+  hello/.webmail
+  hello/.webmail/
+  hello/webmail
+  hello/webmail/
+  hello/webmail.html
+  hello/webmail.html/
+  hello/.webmail.html
+  hello/.webmail.html/
+  .wp-json
+  .wp-json/
+  wp-json
+  wp-json/
+  wp-json.
+  wp-json.html
+  wp-json.html/
+  hello/wp-json
+  hello/wp-json/
+  hello/.wp-json
+  hello/.wp-json/
+  hello/wp-json.html
+  hello/wp-json.html/
+  hello/.wp-json.html
+  hello/.wp-json.html/
+  .wp-admin
+  .wp-admin/
+  wp-admin
+  wp-admin/
+  wp-admin.
+  wp-admin.html
+  wp-admin.html/
+  hello/wp-admin
+  hello/wp-admin/
+  hello/.wp-admin
+  hello/.wp-admin/
+  hello/wp-admin.html
+  hello/wp-admin.html/
+  hello/.wp-admin.html
+  hello/.wp-admin.html/
+  hello.php
+  hello.php/
+  hello.php.html
+  hello.php.
+  hello.php/hello.html
+].freeze
+
+CDN_ALLOWED_PATHS = %w[
+  en
+  hello.html
+].freeze
+
+def create_credentials(username, password)
+  Base64.encode64("#{username}:#{password}").chomp
+end
+
+def url_status_code?(credentials, url, status_code)
+  status_code = status_code.to_i
+
+  headers = {
+    'Authentication' => "Basic #{credentials}"
+  }
+
+  RestClient.get url, headers
+
+  return true if status_code == 200
+
+  false
+rescue RestClient::Exception => e
+  e.http_code == status_code
+rescue StandardError
+  false
+end
+
+origin = ORIGIN.gsub(%r{/$}, '')
+
+paths = PATHS.flat_map do |path|
+  [path, path.upcase]
+end
+
+credentials = create_credentials(USERNAME, PASSWORD)
+
+program_status_code = true
+puts 'These URLs should be rejected by the CDN'
+failed_blocked_urls = []
+paths.each do |path|
+  url = "#{origin}/#{path}"
+
+  puts "Testing URL '#{url}'"
+  failed_blocked_urls << url unless url_status_code?(credentials, url, 406)
+end
+
+if failed_blocked_urls.size.positive?
+  puts "These URLs bypassed the CDN\n"
+
+  puts failed_blocked_urls.join("\n")
+
+  program_status_code = false
+end
+
+paths = CDN_ALLOWED_PATHS.flat_map do |path|
+  [path, path.upcase]
+end
+
+puts 'These URLs should be allowed by the CDN'
+failed_allowed_urls = []
+paths.each do |path|
+  url = "#{origin}/#{path}"
+
+  puts "Testing URL '#{url}'"
+  failed_allowed_urls << url if url_status_code?(credentials, url, 406)
+end
+
+if failed_allowed_urls.size.positive?
+  puts "These URLs were rejected by the CDN\n"
+
+  puts failed_allowed_urls.join("\n")
+
+  program_status_code = false
+end
+
+exit program_status_code
